@@ -1,5 +1,5 @@
 const Stomp = require("stomp-client");
-const {queue, activeMq, printService, printer} = require("../config");
+const {queue, activeMq, printService, printer} = require("../config.json");
 const axios = require("axios");
 const {get} = require("axios");
 const stompClient = new Stomp(activeMq.host, activeMq.port);
