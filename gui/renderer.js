@@ -1,21 +1,26 @@
-const { ipcRenderer } = require("electron");
+const {ipcRenderer} = require("electron");
 window.$ = window.jQuery = require("jquery");
 
-ipcRenderer.on("print-order", (event, data) => {
-  const logsTA = $("textarea#logs");
-  logsTA.append(data);
-  logsTA.append("\n");
+ipcRenderer.on("log", (event, data) => {
+    const logsTA = $("textarea#logs");
+    logsTA.append(data);
+    logsTA.append("\n");
 });
 
 $(function () {
+    const testBtn = $("button#test");
+    const testJobId = $("input#testJobId");
+    testBtn.off("click");
+    testBtn.on("click", (event) => {
+        ipcRenderer.send("test", {jobId : testJobId.val()});
+    });
 
-  const testBtn = $("button#test");
-  testBtn.off("click");
-  testBtn.on("click", (event) => {
-    ipcRenderer.send("test-activeMq");
-  });
-
-  
+    const clearBtn = $("button#clear");
+    clearBtn.off("click");
+    clearBtn.on("click", (event) => {
+        const logsTA = $("textarea#logs");
+        logsTA.text('');
+    });
 });
 
-ipcRenderer.send("connect-activeMq");
+ipcRenderer.send("connect");

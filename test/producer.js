@@ -1,15 +1,33 @@
 const Stomp = require("stomp-client");
-const { queue, activeMq } = require("./config");
+const {queue, activeMq, printService, printer} = require("../config");
+const axios = require("axios");
+const {get} = require("axios");
 const stompClient = new Stomp(activeMq.host, activeMq.port);
 
-stompClient.connect((sessionId) => {
-  console.log(sessionId);
+async function getJobs() {
+    const jobs = await axios.get(`${printService.url}/PrintJobs/${printer.uuid}`, {
+        headers: {
+            'Authorization': printer.password
+        }
+    });
+    return jobs;
+}
 
-  const notification = {
-    label: "you have a new print order, " + Math.floor(Math.random() * 1000000),
-  };
+stompClient.connect(async (sessionId) => {
+    console.log(sessionId);
 
-  stompClient.publish(queue, JSON.stringify(notification));
+    const jobs = await getJobs();
+    if (!jobs || !jobs.data || !jobs.data.length) {
+        return console.log("No jobs found");
+    }
+    for (let i in jobs.data) {
+        const notification = {
+            label: "received new print order",
+            jobId: jobs.data[i]["jobId"],
+        };
+        await stompClient.publish(queue, JSON.stringify(notification));
+    }
 
-  stompClient.disconnect();
+    stompClient.disconnect();
+
 });
