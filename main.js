@@ -28,7 +28,6 @@ const createWindow = () => {
     mainWindow = new BrowserWindow({
         ...window,
         webPreferences: {
-            preload: path.join(__dirname, "gui/preload.js"),
             nodeIntegration: true,
             contextIsolation: false
         },

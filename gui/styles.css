@@ -30,12 +30,12 @@ div {
 div.config {
     padding: 10px;
     border: black 1px solid;
-    width: 50%;
+    width: 600px;
     float: left;
 }
 
 div.stats {
-    width: 40%;
+    width: 300px;
     float: right;
 }
 
