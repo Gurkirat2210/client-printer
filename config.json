@@ -1,14 +1,14 @@
 {
-  "queue": "/queue/print-orders-123",
   "activeMq": {
     "host": "127.0.0.1",
-    "port": 61613
+    "port": 61613,
+    "queue": "/queue/print-orders-123"
   },
   "maxAttempts": 2,
+  "pollInterval": 10000,
   "window": {
     "width": 800,
-    "height": 1000,
-    "minimizable": false
+    "height": 800
   },
   "printService": {
     "url1": "https://print-service-dev.np-healthcare-compass.com",

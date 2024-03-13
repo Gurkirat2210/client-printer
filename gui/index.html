@@ -4,31 +4,98 @@
     <meta charset="UTF-8"/>
     <!-- https://developer.mozilla.org/en-US/docs/Web/HTTP/CSP -->
     <meta
-            http-equiv="Content-Security-Policy"
             content="default-src 'self'; script-src 'self'"
+            http-equiv="Content-Security-Policy"
     />
     <title>Client Printer</title>
-
-    <link rel="stylesheet" href="styles.css"/>
+    <link href="styles.css" rel="stylesheet"/>
 </head>
 <body>
 <h1>Client Printer</h1>
-<div class="test-div">
-    <input id="testJobId" type="number" value="290089">
-    <button id="test">Test</button>
-    <button id="clear">Clear</button>
-</div>
-
-<br/><br/>
-Node.js <span id="node-version"></span>, Chromium
-<span id="chrome-version"></span>, Electron
-<span id="electron-version"></span>.
 
 <!-- You can also require other files to run in this process -->
 <script src="./renderer.js"></script>
 
-<div>
-    <textarea disabled rows="50" id="logs"></textarea>
+<div class="config">
+    <h3>Config</h3>
+    <table>
+        <tbody>
+        <tr>
+            <td class="label">URL</td>
+            <td><input type="text" disabled name="url"></td>
+        </tr>
+        <tr>
+            <td class="label">UUID</td>
+            <td><input type="text" disabled name="uuid"></td>
+        </tr>
+        <tr>
+            <td class="label">Password</td>
+            <td><input type="text" disabled name="password"></td>
+        </tr>
+        <tr>
+            <td class="label">Mode</td>
+            <td><input type="radio" name="mode" value="poll">
+                <label>Poll</label>
+                <input type="radio" name="mode" value="mq">
+                <label>MQ</label>
+            </td>
+        </tr>
+        </tbody>
+    </table>
+    <table name="pollConfig">
+        <tbody>
+        <tr>
+            <td class="label">Interval</td>
+            <td><input type="number" name="interval" disabled></td>
+        </tr>
+        <tr>
+            <td class="label">Status</td>
+            <td>
+                <button id="startPoll">Start</button>
+                <label name="poll-status"></label>
+            </td>
+        </tr>
+        </tbody>
+    </table>
+    <table name="mqConfig">
+        <tbody>
+        <tr>
+            <td class="label">Host</td>
+            <td><input type="text" disabled name="host"></td>
+        </tr>
+        <tr>
+            <td class="label">Port</td>
+            <td><input type="text" disabled name="port"></td>
+        </tr>
+        <tr>
+            <td class="label">Queue</td>
+            <td><input type="text" disabled name="queue"></td>
+        </tr>
+        <tr>
+            <td class="label">Status</td>
+            <td>
+                <button id="connect">Connect</button>&nbsp;
+                <label name="mq-status"></label>
+            </td>
+        </tr>
+        <tr>
+            <td class="label">Test Job Id</td>
+            <td>
+                <input id="testJobId" type="number" value="">
+                <button id="test">Test</button>
+            </td>
+        </tr>
+        </tbody>
+    </table>
 </div>
+
+<div class="logs">
+    <h3>Logs
+        <button id="clear">Clear</button>
+    </h3>
+    <textarea disabled id="logs" rows="15"></textarea>
+</div>
+
+
 </body>
 </html>

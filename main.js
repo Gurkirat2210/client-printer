@@ -1,55 +1,112 @@
-const {app, BrowserWindow, ipcMain} = require("electron");
-// const AutoLaunch = require("auto-launch");
+const {app, BrowserWindow, Tray, ipcMain, ipcRenderer} = require("electron");
 const path = require("node:path");
-const {queue, activeMq, printService, printer, maxAttempts, window} = require("./config.json");
+const {activeMq, window, pollInterval} = require("./config.json");
 const Stomp = require("stomp-client");
-const {handlePayload, validatePayload} = require("./service");
+const {handlePayload, getJobs} = require("./service");
 const stompClient = new Stomp(activeMq.host, activeMq.port);
+
+let isQuiting;
+let tray;
+let mainWindow;
+let pollTimeout;
+
 const createWindow = () => {
-    const mainWindow = new BrowserWindow({
+    mainWindow = new BrowserWindow({
         ...window,
         webPreferences: {
             preload: path.join(__dirname, "gui/preload.js"),
             nodeIntegration: true,
-            contextIsolation: false,
+            contextIsolation: false
         },
     });
 
     mainWindow.loadFile("gui/index.html");
-    mainWindow.on("close", (ev) => {
-        // ev.sender.hide();
+
+    mainWindow.on('minimize', (ev) => {
+        mainWindow.hide();
         ev.preventDefault();
     });
 
-    ipcMain.on("connect", async (event, args) => {
+    mainWindow.on("close", (ev) => {
+        if (!isQuiting) {
+            mainWindow.hide();
+            ev.preventDefault();
+            ev.returnValue = false;
+        }
+    });
+
+    ipcMain.on("connect", async (ipc, args) => {
+        clearInterval(pollTimeout);
+        await stompClient.disconnect();
         stompClient.connect((sessionId) => {
-            event.reply("log", `consumer connected, session: ${sessionId}, printer: ${printer.uuid}`);
-            stompClient.subscribe(queue, async (body, headers) => {
-                await handlePayload(JSON.parse(body), event);
-            });
+                ipc.reply("mq-status", {success: true, status: `Connected, ${sessionId}`});
+                stompClient.subscribe(activeMq.queue, async (body, headers) => {
+                    await handlePayload(body, ipc);
+                });
+            },
+            (error) => {
+                ipc.reply("mq-status", {success: false, error: error?.message});
+            }
+        )
+        ;
+    });
+
+    ipcMain.on("disconnect", async (ipc, args) => {
+        stompClient.disconnect(() => {
+            ipc.reply("mq-status", {success: true, status: 'Disconnected'});
         });
     });
 
-    ipcMain.on("test", async (event, args) => {
-        stompClient.publish(queue, JSON.stringify({
-            label: "received new print order",
-            jobId: args.jobId,
-        }));
+    ipcMain.on("test", async (ipc, args) => {
+        try {
+            stompClient.publish(activeMq.queue, JSON.stringify({
+                label: "received new print order, " + new Date(),
+                jobId: args.jobId,
+            }))
+        } catch (error) {
+            ipc.reply("log", error?.message);
+        }
+    });
+
+    ipcMain.on("startPoll", async (ipc, args) => {
+        await stompClient.disconnect();
+        const poll = async () => {
+            const jobs = await getJobs(ipc);
+            if (!jobs.length) {
+                ipc.reply("log", "No jobs found");
+            }
+            for (let i in jobs) {
+                await handlePayload(JSON.stringify(jobs[i]), ipc)
+            }
+            ipc.reply("log", `Sleeping for ${pollInterval / 1000} seconds..`);
+        }
+        try {
+            await poll();
+            pollTimeout = setInterval(poll, pollInterval);
+            ipc.reply("poll-status", {success: true, status: 'Running'});
+        } catch (error) {
+            ipc.reply("poll-status", {success: false, error: error.message});
+        }
+    });
+
+    ipcMain.on("stopPoll", async (ipc, args) => {
+        clearInterval(pollTimeout);
+        ipc.reply("poll-status", {success: true, status: 'Stopped'});
     });
 };
 
+function setupTray() {
+    tray = new Tray(path.join(__dirname, 'gui/tray.png'));
+    tray.on("click", () => {
+        if (mainWindow) {
+            mainWindow.show();
+        }
+    })
+}
+
 app.whenReady().then(() => {
-    // let autoLaunch = new AutoLaunch({
-    //   name: "client-printer",
-    //   path: app.getPath("exe"),
-    // });
-
-    // autoLaunch.isEnabled().then((isEnabled) => {
-    //   if (!isEnabled) autoLaunch.enable();
-    // });
-
+    setupTray();
     createWindow();
-
     app.on("activate", () => {
         // On macOS it's common to re-create a window in the app when the
         // dock icon is clicked and there are no other windows open.
@@ -57,8 +114,8 @@ app.whenReady().then(() => {
     });
 });
 
-app.setLoginItemSettings({
-    openAtLogin: true,
+app.on('before-quit', function () {
+    isQuiting = true;
 });
 
 // Quit when all windows are closed, except on macOS. There, it's common

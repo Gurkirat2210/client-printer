@@ -1,7 +1,8 @@
 const axios = require("axios");
 const fs = require("fs");
+const {printService, printer, maxAttempts} = require("./config.json");
 
-async function retrieveJob(job) {
+async function retrieveJob(job, ipc) {
     const jobId = job["jobId"];
     const config = {
         baseURL: printService.url,
@@ -15,17 +16,20 @@ async function retrieveJob(job) {
         try {
             const pdf = await axios(config);
             if (pdf.data && pdf.data.length > 0) {
+                ipc.reply("log", `Job#${jobId}: Attempt#${attempt}/${maxAttempts}: Writing pdf ${fileName}`);
                 await fs.writeFileSync(fileName, pdf.data);
+                //todo print & delete file
                 return true;
             }
         } catch (error) {
+            ipc.reply("log", `Job#${jobId}: Attempt#${attempt}/${maxAttempts}: Retrieve ERROR: ${error.message}`);
             console.log(error);
         }
     }
     return false;
 }
 
-async function sendAck(job) {
+async function sendAck(job, ipc) {
     const config = {
         baseURL: printService.url,
         url: `/UpdatePrintJobStatus/${printer.uuid}`,
@@ -33,42 +37,52 @@ async function sendAck(job) {
         contentType: 'application/json',
         data: job
     };
-    const response = await axios(config);
-    return response;
-
+    try {
+        const response = await axios(config);
+        ipc.reply("log", `Job#${job.jobId}: ACK status: (${response.status}) ${response.status === 200 ? "SENT" : "FAILED"}.`);
+    } catch (error) {
+        ipc.reply("log", `Job#${job.jobId}: ACK ERROR: ${error.message}`);
+        console.log(error);
+    }
 }
 
-async function handlePayload(body, event) {
-    if (validatePayload(body, event)) {
+async function handlePayload(body, ipc) {
+    if (!validatePayload(body, ipc)) {
         return;
     }
-
-    event.reply("log", `Job#${body.jobId}, PROCESSING..`);
+    body = JSON.parse(body);
+    ipc.reply("log", `Job#${body.jobId}: PROCESSING..`);
     const ack = {
         jobId: body.jobId,
         printServerPassword: printer.password
     };
-    ack.success = await retrieveJob(body);
-    event.reply("log", `Job#${body.jobId}, success: ${ack.success}, sending ACK: ${JSON.stringify(ack)}`);
-    ack.success = await sendAck(ack);
-    if (ack.success.status === 200) {
-        event.reply("log", `Job#${body.jobId}, PROCESSED.`);
-    } else {
-        event.reply("log", `Job#${body.jobId}, ACK FAILED.`);
-    }
+    ack.success = await retrieveJob(body, ipc);
+    ipc.reply("log", `Job#${body.jobId}: PRINTED: ${ack.success}: Sending ACK: ${JSON.stringify(ack)}`);
+    await sendAck(ack, ipc);
 }
 
-function validatePayload(body, event) {
+function validatePayload(body, ipc) {
     try {
-        event.reply("log", `Received payload, ${body}`);
+        ipc.reply("log", `Received payload, ${body}`);
         body = JSON.parse(body);
-        return body.jobId;
+        return body;
     } catch (error) {
-        event.reply("log", `Invalid payload, ${body}`);
+        ipc.reply("log", `Invalid payload, ${body}`);
         return false;
     }
 }
 
+async function getJobs(ipc) {
+    const jobs = await axios.get(`${printService.url}/PrintJobs/${printer.uuid}`, {
+        headers: {
+            'Authorization': printer.password
+        }
+    });
+    return jobs?.data;
+}
+
+
 module.exports = {
-    handlePayload
+    handlePayload,
+    getJobs
 }

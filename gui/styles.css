@@ -1,8 +1,16 @@
-textarea {
-  height: auto;
-  width: -webkit-fill-available;
+table, textarea, td input[type=text] {
+    height: auto;
+    width: -webkit-fill-available;
 }
 
-.test-div {
-  float: left;
+td.label {
+    width: 100px;
+}
+
+td.value {
+    width: 300px;
+}
+
+.logs button#clear {
+    float: right;
 }
