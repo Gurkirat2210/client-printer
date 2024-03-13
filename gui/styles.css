@@ -1,6 +1,14 @@
+body {
+    font-family: monospace;
+}
+
 table, textarea, td input[type=text] {
     height: auto;
     width: -webkit-fill-available;
+}
+
+textarea {
+    resize: none;
 }
 
 td.label {
@@ -11,6 +19,31 @@ td.value {
     width: 300px;
 }
 
-.logs button#clear {
+.logs button#clear, .stats button#reset {
     float: right;
+}
+
+div {
+    margin: 10px;
+}
+
+div.config {
+    padding: 10px;
+    border: black 1px solid;
+    width: 50%;
+    float: left;
+}
+
+div.stats {
+    width: 40%;
+    float: right;
+}
+
+label.status {
+    color: red;
+    font-weight: bold;
+}
+
+label.status.green {
+    color: green !important;
 }

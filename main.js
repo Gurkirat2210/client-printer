@@ -1,9 +1,23 @@
 const {app, BrowserWindow, Tray, ipcMain, ipcRenderer} = require("electron");
 const path = require("node:path");
-const {activeMq, window, pollInterval} = require("./config.json");
+const {activeMq, window, pollInterval, maxAttempts} = require("./config.json");
 const Stomp = require("stomp-client");
+const moment = require("moment");
 const {handlePayload, getJobs} = require("./service");
-const stompClient = new Stomp(activeMq.host, activeMq.port);
+const stompClient = new Stomp({
+    host: activeMq.host,
+    port: activeMq.port,
+});
+const stats = {
+    received: 0,
+    processed: 0,
+    failed: 0,
+    last: {
+        at: null,
+        jobId: 0,
+        success: null
+    }
+}
 
 let isQuiting;
 let tray;
@@ -39,22 +53,34 @@ const createWindow = () => {
         clearInterval(pollTimeout);
         await stompClient.disconnect();
         stompClient.connect((sessionId) => {
-                ipc.reply("mq-status", {success: true, status: `Connected, ${sessionId}`});
-                stompClient.subscribe(activeMq.queue, async (body, headers) => {
-                    await handlePayload(body, ipc);
-                });
-            },
-            (error) => {
-                ipc.reply("mq-status", {success: false, error: error?.message});
-            }
-        )
-        ;
+            ipc.reply("mq-status", {success: true, status: `Connected, ${sessionId}`});
+            stompClient.subscribe(activeMq.queue, async (body, headers) => {
+                try {
+                    stats.received++;
+                    ipc.reply("log", `Received message, ${body}`);
+                    body = JSON.parse(body);
+                    stats.last.at = moment().toISOString();
+                    stats.last.jobId = body.jobId;
+                    const success = await handlePayload(body, ipc);
+                    stats.last.success = success;
+                    if (success) {
+                        stats.processed++;
+                    } else {
+                        stats.failed++;
+                    }
+                } catch (error) {
+                    ipc.reply("log", `handling failed, ERROR: ${error.message}`);
+                }
+                ipc.reply("stats", stats);
+                // stompClient.ack(headers['message-id'], sessionId)
+            });
+        }, (error) => {
+            ipc.reply("mq-status", {success: false, error: error?.message});
+        });
     });
 
     ipcMain.on("disconnect", async (ipc, args) => {
-        stompClient.disconnect(() => {
-            ipc.reply("mq-status", {success: true, status: 'Disconnected'});
-        });
+        await stompClient.disconnect(() => ipc.reply("mq-status", {success: true, status: 'Disconnected'}));
     });
 
     ipcMain.on("test", async (ipc, args) => {
@@ -92,6 +118,13 @@ const createWindow = () => {
     ipcMain.on("stopPoll", async (ipc, args) => {
         clearInterval(pollTimeout);
         ipc.reply("poll-status", {success: true, status: 'Stopped'});
+    });
+
+    ipcMain.on("reset", async (ipc, args) => {
+        stats.received = 0;
+        stats.processed = 0;
+        stats.failed = 0;
+        stats.last = {}
     });
 };
 

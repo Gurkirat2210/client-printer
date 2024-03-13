@@ -11,13 +11,12 @@
     <link href="styles.css" rel="stylesheet"/>
 </head>
 <body>
-<h1>Client Printer</h1>
 
 <!-- You can also require other files to run in this process -->
 <script src="./renderer.js"></script>
 
+
 <div class="config">
-    <h3>Config</h3>
     <table>
         <tbody>
         <tr>
@@ -42,7 +41,7 @@
         </tr>
         </tbody>
     </table>
-    <table name="pollConfig">
+    <table class="pollConfig">
         <tbody>
         <tr>
             <td class="label">Interval</td>
@@ -52,12 +51,12 @@
             <td class="label">Status</td>
             <td>
                 <button id="startPoll">Start</button>
-                <label name="poll-status"></label>
+                <label class="status"></label>
             </td>
         </tr>
         </tbody>
     </table>
-    <table name="mqConfig">
+    <table class="mqConfig">
         <tbody>
         <tr>
             <td class="label">Host</td>
@@ -75,13 +74,13 @@
             <td class="label">Status</td>
             <td>
                 <button id="connect">Connect</button>&nbsp;
-                <label name="mq-status"></label>
+                <label class="status"></label>
             </td>
         </tr>
         <tr>
             <td class="label">Test Job Id</td>
             <td>
-                <input id="testJobId" type="number" value="">
+                <input id="testJobId" type="number" min="1" value="">
                 <button id="test">Test</button>
             </td>
         </tr>
@@ -89,11 +88,14 @@
     </table>
 </div>
 
+<div class="stats">
+    <textarea disabled id="stats" rows="8"></textarea>
+    <button id="reset">Reset Stats</button>
+</div>
+
 <div class="logs">
-    <h3>Logs
-        <button id="clear">Clear</button>
-    </h3>
     <textarea disabled id="logs" rows="15"></textarea>
+    <button id="clear">Clear Logs</button>
 </div>
 
 
