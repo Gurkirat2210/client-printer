@@ -1,6 +1,7 @@
 const {app, BrowserWindow, Tray, ipcMain, ipcRenderer} = require("electron");
 const path = require("node:path");
-const {activeMq, window, pollInterval, maxAttempts} = require("./config.json");
+const {activeMq, window, pollInterval, fileNameTimestampFmt} = require("./config.json");
+const fs = require("fs");
 const Stomp = require("stomp-client");
 const moment = require("moment");
 const {handlePayload, getJobs} = require("./service");
@@ -32,7 +33,7 @@ const createWindow = () => {
             contextIsolation: false
         },
     });
-
+    mainWindow.webContents.openDevTools();
     mainWindow.loadFile("gui/index.html");
 
     mainWindow.on('minimize', (ev) => {
@@ -48,40 +49,6 @@ const createWindow = () => {
         }
     });
 
-    ipcMain.on("connect", async (ipc, args) => {
-        clearInterval(pollTimeout);
-        await stompClient.disconnect();
-        stompClient.connect((sessionId) => {
-            ipc.reply("mq-status", {success: true, status: `Connected, ${sessionId}`});
-            stompClient.subscribe(activeMq.queue, async (body, headers) => {
-                try {
-                    stats.received++;
-                    ipc.reply("log", `Received message, ${body}`);
-                    body = JSON.parse(body);
-                    stats.last.at = moment().toISOString();
-                    stats.last.jobId = body.jobId;
-                    const success = await handlePayload(body, ipc);
-                    stats.last.success = success;
-                    if (success) {
-                        stats.processed++;
-                    } else {
-                        stats.failed++;
-                    }
-                } catch (error) {
-                    ipc.reply("log", `handling failed, ERROR: ${error.message}`);
-                }
-                ipc.reply("stats", stats);
-                // stompClient.ack(headers['message-id'], sessionId)
-            });
-        }, (error) => {
-            ipc.reply("mq-status", {success: false, error: error?.message});
-        });
-    });
-
-    ipcMain.on("disconnect", async (ipc, args) => {
-        await stompClient.disconnect(() => ipc.reply("mq-status", {success: true, status: 'Disconnected'}));
-    });
-
     ipcMain.on("test", async (ipc, args) => {
         try {
             stompClient.publish(activeMq.queue, JSON.stringify({
@@ -94,7 +61,6 @@ const createWindow = () => {
     });
 
     ipcMain.on("startPoll", async (ipc, args) => {
-        await stompClient.disconnect();
         const poll = async () => {
             const jobs = await getJobs(ipc);
             if (!jobs.length) {
@@ -108,15 +74,15 @@ const createWindow = () => {
         try {
             await poll();
             pollTimeout = setInterval(poll, pollInterval);
-            ipc.reply("poll-status", {success: true, status: 'Running'});
+            ipc.reply("status", {success: true, status: 'Running'});
         } catch (error) {
-            ipc.reply("poll-status", {success: false, error: error.message});
+            ipc.reply("status", {success: false, error: error.message});
         }
     });
 
     ipcMain.on("stopPoll", async (ipc, args) => {
         clearInterval(pollTimeout);
-        ipc.reply("poll-status", {success: true, status: 'Stopped'});
+        ipc.reply("status", {success: true, status: ''});
     });
 
     ipcMain.on("reset", async (ipc, args) => {
@@ -124,7 +90,14 @@ const createWindow = () => {
         stats.processed = 0;
         stats.failed = 0;
         stats.last = {}
+        ipc.reply("stats", stats);
     });
+
+    ipcMain.on("export-logs", async (ipc, args) => {
+        const fileName = `${__dirname}/logs/${moment().format(fileNameTimestampFmt)}.logs`;
+        await fs.writeFileSync(fileName, args);
+    });
+
 };
 
 function setupTray() {
@@ -136,9 +109,41 @@ function setupTray() {
     })
 }
 
-app.whenReady().then(() => {
-    setupTray();
-    createWindow();
+app.whenReady().then(async () => {
+    await setupTray();
+    await createWindow();
+
+    const ipc = {
+        reply: (channel, data) => {
+            mainWindow.webContents.send(channel, data);
+        }
+    }
+
+    stompClient.connect((sessionId) => {
+        stompClient.subscribe(activeMq.queue, async (body, headers) => {
+            try {
+                stats.received++;
+                ipc.reply("log", `Received message, ${body}`);
+                body = JSON.parse(body);
+                stats.last.at = moment().toLocaleString();
+                stats.last.jobId = body.jobId;
+                const success = await handlePayload(body, ipc);
+                stats.last.status = success ? 'Printed' : 'Failed';
+                if (success) {
+                    stats.processed++;
+                } else {
+                    stats.failed++;
+                }
+            } catch (error) {
+                ipc.reply("log", `handling failed, ERROR: ${error.message}`);
+            }
+            ipc.reply("stats", stats);
+        });
+    }, (error) => {
+        ipc.reply("status", {success: false, error: error?.message});
+    });
+
+
     app.on("activate", () => {
         // On macOS it's common to re-create a window in the app when the
         // dock icon is clicked and there are no other windows open.
@@ -146,14 +151,9 @@ app.whenReady().then(() => {
     });
 });
 
-app.on('before-quit', function () {
+app.on('before-quit', async function () {
     isQuiting = true;
-});
-
-// Quit when all windows are closed, except on macOS. There, it's common
-// for applications and their menu bar to stay active until the user quits
-// explicitly with Cmd + Q.
-app.on("window-all-closed", () => {
-    stompClient.disconnect();
-    if (process.platform !== "darwin") app.quit();
+    await stompClient.unsubscribe(activeMq.queue);
+    await stompClient.disconnect();
+    await clearInterval(pollTimeout);
 });

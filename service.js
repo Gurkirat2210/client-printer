@@ -1,6 +1,7 @@
 const axios = require("axios");
 const fs = require("fs");
-const {printService, printer, maxAttempts} = require("./config.json");
+const {printService, printer, maxAttempts, fileNameTimestampFmt} = require("./config.json");
+const moment = require("moment");
 
 async function getJobs(ipc) {
     const jobs = await axios.get(`${printService.url}/PrintJobs/${printer.uuid}`, {
@@ -43,7 +44,7 @@ async function handlePayload(body, ipc) {
     const jobId = body.jobId;
     let attempt = 1;
     ipc.reply("log", `Job#${jobId}: PROCESSING..`);
-    const fileName = `${__dirname}/pdf/${new Date().getTime()}_${jobId}.pdf`;
+    const fileName = `${__dirname}/pdf/${moment().format(fileNameTimestampFmt)}_${jobId}.pdf`;
     const ack = {
         jobId: jobId,
         printServerPassword: printer.password
@@ -70,7 +71,6 @@ async function handlePayload(body, ipc) {
             return true;
         } catch (error) {
             ipc.reply("log", `Job#${jobId}: ACK ERROR: ${error.message}.`);
-            console.log(error);
         }
     }
 

@@ -2,24 +2,23 @@
   "activeMq": {
     "host": "127.0.0.1",
     "port": 61613,
-    "queue": "/queue/print-orders-123"
+    "queue": "/queue/print-orders-1303"
   },
-  "maxAttempts": 2,
+  "maxAttempts": 3,
   "pollInterval": 10000,
+  "maxLogSize": 100000,
+  "fileNameTimestampFmt": "MMDDYYYYHHmmss",
   "window": {
     "width": 1000,
-    "height": 500,
-    "minHeight": 500,
+    "height": 600,
+    "minHeight": 600,
     "minWidth": 1000,
     "autoHideMenuBar": true
   },
   "printService": {
-    "url1": "https://print-service-dev.np-healthcare-compass.com",
     "url": "http://localhost:8080"
   },
   "printer": {
-    "uuid1": "982b0720-70bb-4cd7-91b3-06ba207869f2",
-    "password1": "Yai!4P&P6e7",
     "uuid": "cef8bde7-5dc6-44bb-8060-173f43a0ef24",
     "password": "gk-dont-modify"
   }

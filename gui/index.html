@@ -1,85 +1,64 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <meta charset="UTF-8"/>
-    <!-- https://developer.mozilla.org/en-US/docs/Web/HTTP/CSP -->
-    <meta
-            content="default-src 'self'; script-src 'self'"
-            http-equiv="Content-Security-Policy"
-    />
     <title>Client Printer</title>
     <link href="styles.css" rel="stylesheet"/>
 </head>
 <body>
-
-<!-- You can also require other files to run in this process -->
 <script src="./renderer.js"></script>
-
 
 <div class="config">
     <table>
+        <thead>
+        <tr>
+            <th colspan="4">Service & Printer Config</th>
+        </tr>
+        </thead>
         <tbody>
         <tr>
             <td class="label">URL</td>
-            <td><input type="text" disabled name="url"></td>
+            <td colspan="3"><input type="text" disabled name="url"></td>
         </tr>
         <tr>
             <td class="label">UUID</td>
-            <td><input type="text" disabled name="uuid"></td>
+            <td colspan="3"><input type="text" disabled name="uuid"></td>
         </tr>
         <tr>
             <td class="label">Password</td>
             <td><input type="text" disabled name="password"></td>
+            <td class="label">&nbsp;&nbsp;Retries</td>
+            <td><input type="text" disabled name="retries"></td>
         </tr>
         <tr>
-            <td class="label">Mode</td>
-            <td><input type="radio" name="mode" value="poll">
-                <label>Poll</label>
-                <input type="radio" name="mode" value="mq">
-                <label>MQ</label>
+            <td colspan="4">
+                <input type="checkbox" name="poll">Check new print jobs every
+                <input type="number" name="interval" disabled> ms
             </td>
         </tr>
         </tbody>
     </table>
-    <table class="pollConfig">
-        <tbody>
-        <tr>
-            <td class="label">Interval</td>
-            <td><input type="number" name="interval" disabled></td>
-        </tr>
-        <tr>
-            <td class="label">Status</td>
-            <td>
-                <button id="startPoll">Start</button>
-                <label class="status"></label>
-            </td>
-        </tr>
-        </tbody>
-    </table>
+
+
     <table class="mqConfig">
+        <thead>
+        <tr>
+            <th colspan="4">MQ Broker Config</th>
+        </tr>
+        </thead>
         <tbody>
         <tr>
             <td class="label">Host</td>
             <td><input type="text" disabled name="host"></td>
-        </tr>
-        <tr>
-            <td class="label">Port</td>
+            <td>&nbsp;&nbsp;Port</td>
             <td><input type="text" disabled name="port"></td>
         </tr>
         <tr>
             <td class="label">Queue</td>
-            <td><input type="text" disabled name="queue"></td>
-        </tr>
-        <tr>
-            <td class="label">Status</td>
-            <td>
-                <button id="connect">Connect</button>&nbsp;
-                <label class="status"></label>
-            </td>
+            <td colspan="3"><input type="text" disabled name="queue"></td>
         </tr>
         <tr>
             <td class="label">Test Job Id</td>
-            <td>
+            <td colspan="3">
                 <input id="testJobId" type="number" min="1" value="">
                 <button id="test">Test</button>
             </td>
@@ -89,12 +68,13 @@
 </div>
 
 <div class="stats">
-    <textarea disabled id="stats" rows="8"></textarea>
+    <textarea disabled id="stats" rows="10"></textarea>
     <button id="reset">Reset Stats</button>
 </div>
 
 <div class="logs">
     <textarea disabled id="logs" rows="15"></textarea>
+    <label class="status red"></label>
     <button id="clear">Clear Logs</button>
 </div>
 
