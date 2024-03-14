@@ -1,0 +1,1 @@
+{"activeMq":{"host":"127.0.0.1","port":"61613","queue":"/queue/print-orders-1303"},"printService":{"url":"http://localhost:8080","maxAttempts":"1","poll":"-1"},"printer":{"uuid":"cef8bde7-5dc6-44bb-8060-173f43a0ef24","password":"gk-dont-modify"}}

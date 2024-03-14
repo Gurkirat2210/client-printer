@@ -1,6 +1,7 @@
 const axios = require("axios");
 const fs = require("fs");
-const {printService, printer, maxAttempts, fileNameTimestampFmt} = require("./config.json");
+const {fileNameTimestampFmt} = require("./app-config.json");
+const {printService, printer} = require("./print-config.json");
 const moment = require("moment");
 
 async function getJobs() {
@@ -25,7 +26,7 @@ async function retrieveJob(job) {
     if (pdf.data && pdf.data.length > 0) {
         return pdf.data;
     }
-    throw new Error ('received null or empty pdf data stream')
+    throw new Error('received null or empty pdf data stream')
 }
 
 async function testRetrieveJob() {
@@ -43,7 +44,7 @@ async function testRetrieveJob() {
     if (pdf.data && pdf.data.length > 0) {
         return pdf.data;
     }
-    throw new Error ('received null or empty pdf data stream')
+    throw new Error('received null or empty pdf data stream')
 }
 
 async function sendAck(job) {
@@ -61,43 +62,134 @@ async function sendAck(job) {
 async function handlePayload(body, ipc) {
     const jobId = body.jobId;
     let attempt = 1;
-    ipc.send("log", `Job#${jobId}: PROCESSING..`);
-    const fileName = `${__dirname}/pdf/${moment().format(fileNameTimestampFmt)}_${jobId}.pdf`;
+    ipc.reply("log", `Job#${jobId}: PROCESSING..`);
     const ack = {
         jobId: jobId,
-        printServerPassword: printer.password
+        printServerPassword: printer.password,
+        fileName: `${__dirname}/pdf/${moment().format(fileNameTimestampFmt)}_${jobId}.pdf`
     };
     do {
         try {
-            ipc.send("log", `Job#${jobId}: Attempt#${attempt}/${maxAttempts}: retrieving pdf..`);
+            ipc.reply("log", `Job#${jobId}: Attempt#${attempt}/${printService.maxAttempts}: retrieving pdf..`);
             const pdfStream = await retrieveJob(body, ipc);
-            ipc.send("log", `Job#${jobId}: Attempt#${attempt}/${maxAttempts}: printing pdf ${fileName}..`);
-            await fs.writeFileSync(fileName, pdfStream);
+            ipc.reply("log", `Job#${jobId}: Attempt#${attempt}/${printService.maxAttempts}: printing pdf ${ack.fileName}..`);
+            await fs.writeFileSync(ack.fileName, pdfStream);
             //todo print & delete file
             ack.success = true;
         } catch (error) {
-            ipc.send("log", `Job#${jobId}: Attempt#${attempt}/${maxAttempts}: ERROR: ${error.message}`);
+            ipc.reply("log", `Job#${jobId}: Attempt#${attempt}/${printService.maxAttempts}: ERROR: ${error.message}`);
         }
         attempt++;
-    } while (!ack.success && attempt <= maxAttempts);
+    } while (!ack.success && attempt <= printService.maxAttempts);
 
-    if (ack.success || attempt > maxAttempts) {
+    if (ack.success || attempt > printService.maxAttempts) {
         try {
-            ipc.send("log", `Job#${jobId}: Sending ACK: ${JSON.stringify(ack)}`);
+            ipc.reply("log", `Job#${jobId}: Sending ACK: ${JSON.stringify(ack)}`);
             const ackRes = await sendAck(ack, ipc);
-            ipc.send("log", `Job#${jobId}: ACK status: (${ackRes.status}) ${ackRes.status === 200 ? "SENT" : "FAILED"}.`);
-            return true;
+            ack.success = ackRes.status === 200;
+            ipc.reply("log", `Job#${jobId}: ACK status: (${ackRes.status}) ${ack.success ? "SENT" : "FAILED"}.`);
         } catch (error) {
-            ipc.send("log", `Job#${jobId}: ACK ERROR: ${error.message}.`);
+            ipc.reply("log", `Job#${jobId}: ACK ERROR: ${error.message}.`);
         }
     }
-
-    return false;
+    return ack;
 }
 
 
+async function startPolling(ipc) {
+    let pollingCfg;
+    try {
+        const poll = async () => {
+            const jobs = await getJobs(ipc);
+            if (!jobs.length) {
+                ipc.reply("log", "No jobs found");
+            }
+            for (let i in jobs) {
+                await handlePayload(JSON.stringify(jobs[i]), ipc)
+            }
+            ipc.reply("log", `Sleeping for ${printService.poll / 1000} seconds.`);
+        }
+
+        await poll();
+        pollingCfg = setInterval(poll, printService.poll);
+        updatePollStatus(pollingCfg, ipc);
+    } catch (error) {
+        updatePollStatus(null, ipc, error.message);
+    }
+    return pollingCfg;
+}
+
+function subscribeToMq(ipc, stompClient, activeMq, stats, callback) {
+    let stompSession;
+    stompClient.connect((sessionId) => {
+        stompSession = sessionId;
+        updateMQStatus(stompSession, ipc);
+        stompClient.subscribe(activeMq.queue, async (body, headers) => {
+            try {
+                stats.received++;
+                ipc.reply("log", `Received message, ${body}`);
+                body = JSON.parse(body);
+                if (body.jobId < 0) {
+                    return true;
+                }
+                const ack = await handlePayload(body, ipc);
+                if (ack.success) {
+                    stats.last.fileName = ack.fileName;
+                    stats.last.at = moment().toLocaleString();
+                    stats.last.jobId = body.jobId;
+                    stats.processed++;
+                } else {
+                    stats.failed++;
+                }
+            } catch (error) {
+                ipc.reply("log", `handling failed, ERROR: ${error.message}`);
+            }
+            ipc.reply("stats", stats);
+        });
+        return callback(stompSession);
+    }, (error) => {
+        updateMQStatus(null, ipc, error.message);
+        return callback(null);
+    });
+}
+
+function updatePollStatus(pollingCfg, ipc, error) {
+    if (pollingCfg?._onTimeout) {
+        ipc.reply("status", {
+            success: true,
+            type: 'poll',
+            status: `✔ Polling (${pollingCfg._idleTimeout / 1000} secs)`
+        });
+    } else {
+        ipc.reply("status", {
+            success: false,
+            type: 'poll',
+            error: `✘ Polling Off` + (error ? ` (${error})` : '')
+        });
+    }
+}
+
+function updateMQStatus(stompSession, ipc, error) {
+    if (stompSession) {
+        ipc.reply("status", {
+            success: true,
+            type: 'mq',
+            status: `✔ MQ Connected (${stompSession})`
+        });
+    } else {
+        ipc.reply("status", {
+            success: false,
+            type: 'mq',
+            error: `✘ MQ Disconnected` + (error ? `(${error})` : '')
+        });
+    }
+}
+
 module.exports = {
     handlePayload,
-    getJobs,
-    testRetrieveJob
+    subscribeToMq,
+    testRetrieveJob,
+    startPolling,
+    updateMQStatus,
+    updatePollStatus
 }

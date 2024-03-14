@@ -1,14 +1,19 @@
-const {app, BrowserWindow, Tray, ipcMain, ipcRenderer} = require("electron");
+const {dialog, app, BrowserWindow, Tray, ipcMain, ipcRenderer} = require("electron");
 const path = require("node:path");
-const {activeMq, window, pollInterval, fileNameTimestampFmt} = require("./config.json");
+const {window, fileNameTimestampFmt} = require("./app-config.json");
 const fs = require("fs");
 const Stomp = require("stomp-client");
 const moment = require("moment");
-const {handlePayload, getJobs, testRetrieveJob} = require("./service");
+const {subscribeToMq, updatePollStatus, startPolling, testRetrieveJob, updateMQStatus} = require("./service");
+
+const printConfig = require("./print-config.json");
+const {copyFileSync} = require("fs");
+const {activeMq, printService} = printConfig;
 const stompClient = new Stomp({
     host: activeMq.host,
     port: activeMq.port,
 });
+
 const stats = {
     received: 0,
     processed: 0,
@@ -16,14 +21,13 @@ const stats = {
     last: {
         at: null,
         jobId: 0,
-        success: null
-    }
+        fileName: null
+    },
 }
-
 let isQuiting;
 let tray;
 let mainWindow;
-let pollTimeout;
+let pollingCfg;
 let stompSession;
 let domReady;
 
@@ -35,7 +39,7 @@ const createWindow = () => {
             contextIsolation: false
         },
     });
-    mainWindow.webContents.openDevTools();
+    // mainWindow.webContents.openDevTools();
     mainWindow.loadFile("gui/index.html");
 
     mainWindow.on('minimize', (ev) => {
@@ -49,6 +53,27 @@ const createWindow = () => {
             ev.preventDefault();
             ev.returnValue = false;
         }
+    });
+
+    ipcMain.on("viewLatestTicket", async (ipc, args) => {
+        let ticketPdf = stats.last?.fileName;
+        if (!ticketPdf) {
+            return;
+        }
+        const options = {
+            title: "Save file",
+            defaultPath: path.basename(ticketPdf),
+            buttonLabel: "Save",
+
+            filters: [
+                {name: 'pdf', extensions: ['pdf']},
+                {name: 'All Files', extensions: ['*']}
+            ]
+        };
+
+        dialog.showSaveDialog(null, options).then(({filePath}) => {
+            fs.copyFileSync(ticketPdf, filePath);
+        });
     });
 
     ipcMain.on("test", async (ipc, args) => {
@@ -67,43 +92,6 @@ const createWindow = () => {
         }
     });
 
-    ipcMain.on("startPoll", async (ipc, args) => {
-        const poll = async () => {
-            const jobs = await getJobs(ipc);
-            if (!jobs.length) {
-                ipc.reply("log", "No jobs found");
-            }
-            for (let i in jobs) {
-                await handlePayload(JSON.stringify(jobs[i]), ipc)
-            }
-            ipc.reply("log", `Sleeping for ${pollInterval / 1000} seconds..`);
-        }
-        try {
-            await poll();
-            pollTimeout = setInterval(poll, pollInterval);
-            ipc.reply("status", {
-                success: true,
-                type: 'poll',
-                status: `Polling new jobs every ${pollInterval / 1000} seconds..`
-            });
-        } catch (error) {
-            ipc.reply("status", {
-                success: false, type: 'poll',
-                error: error.message
-            });
-        }
-    });
-
-    ipcMain.on("stopPoll", async (ipc, args) => {
-        clearInterval(pollTimeout);
-        ipc.reply("log", `Polling for new jobs STOPPED`);
-        ipc.reply("status", {
-            success: true,
-            type: 'poll',
-            status: ''
-        });
-    });
-
     ipcMain.on("reset", async (ipc, args) => {
         stats.received = 0;
         stats.processed = 0;
@@ -114,22 +102,21 @@ const createWindow = () => {
         ipc.reply("stats", stats);
     });
 
-    mainWindow.webContents.on('did-finish-load', () => {
+    ipcMain.on("updateAppConfig", async (ipc, args) => {
+        const fileName = `${__dirname}/print-config.json`;
+        await fs.writeFileSync(fileName, JSON.stringify(args));
+        ipc.reply("printConfig", printConfig);
+        app.relaunch()
+        app.exit()
+    });
+
+    ipcMain.on("domReady", async (ipc, args) => {
         domReady = true;
-        if (pollTimeout?._onTimeout) {
-            ipc.send("status", {
-                success: true,
-                type: 'poll',
-                status: `Polling new jobs every ${pollInterval / 1000} seconds..`
-            });
+        if (printConfig) {
+            ipc.reply("printConfig", printConfig);
         }
-        if (stompSession) {
-            ipc.send("status", {
-                success: true,
-                type: 'mq',
-                status: `Connected, ${stompSession}`
-            });
-        }
+        updatePollStatus(pollingCfg, ipc)
+        updateMQStatus(stompSession, ipc)
     });
 };
 
@@ -143,7 +130,7 @@ function setupTray() {
 }
 
 const ipc = {
-    send: (channel, data) => {
+    reply: (channel, data) => {
         setTimeout(() => mainWindow.webContents.send(channel, data), domReady ? 0 : 5000);
     }
 }
@@ -152,43 +139,14 @@ app.whenReady().then(async () => {
     await setupTray();
     await createWindow();
 
-    stompClient.connect((sessionId) => {
-        stompSession = sessionId;
-        ipc.send("status", {
-            success: true,
-            type: 'mq',
-            status: `Connected, ${sessionId}`
-        });
-        stompClient.subscribe(activeMq.queue, async (body, headers) => {
-            try {
-                stats.received++;
-                ipc.send("log", `Received message, ${body}`);
-                body = JSON.parse(body);
-                if (body.jobId < 0) {
-                    return true;
-                }
-                stats.last.at = moment().toLocaleString();
-                stats.last.jobId = body.jobId;
-                const success = await handlePayload(body, ipc);
-                stats.last.status = success ? 'Printed' : 'Failed';
-                if (success) {
-                    stats.processed++;
-                } else {
-                    stats.failed++;
-                }
-            } catch (error) {
-                ipc.send("log", `handling failed, ERROR: ${error.message}`);
-            }
-            ipc.send("stats", stats);
-        });
-    }, (error) => {
-        ipc.send("status", {
-            success: false,
-            error: error?.message,
-            type: 'mq'
-        });
-    });
+    if (printConfig.activeMq) {
+        subscribeToMq(ipc, stompClient, activeMq, stats, (session) => stompSession = session);
+    }
 
+    if (printService.poll > 0) {
+        printService.poll = printService.poll > 30000 ? printService.poll : 30000;
+        pollingCfg = await startPolling(ipc);
+    }
 
     app.on("activate", () => {
         // On macOS it's common to re-create a window in the app when the
@@ -201,5 +159,5 @@ app.on('before-quit', async function () {
     isQuiting = true;
     await stompClient.unsubscribe(activeMq.queue);
     await stompClient.disconnect();
-    await clearInterval(pollTimeout);
+    await clearInterval(pollingCfg);
 });

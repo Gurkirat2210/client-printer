@@ -12,37 +12,45 @@
         <table>
             <thead>
             <tr>
-                <th colspan="2">Service & Printer Config</th>
+                <th colspan="4">Service & Printer Config</th>
             </tr>
             </thead>
             <tbody>
             <tr>
                 <td class="label">URL</td>
-                <td><input type="text" disabled name="url"></td>
+                <td colspan="3"><input type="text" name="url"></td>
             </tr>
             <tr>
                 <td class="label">UUID</td>
-                <td><input type="text" disabled name="uuid"></td>
+                <td colspan="3"><input type="text" name="uuid"></td>
             </tr>
             <tr>
                 <td class="label">Password</td>
-                <td><input type="text" disabled name="password"></td>
+                <td colspan="3"><input type="text" name="password"></td>
             </tr>
             <tr>
                 <td class="label">Max Attempts</td>
-                <td><select disabled name="retries">
+                <td class="half"><select name="retries">
                     <option value="1">1</option>
                     <option value="2">2</option>
-                    <option value="3" selected>3</option>
+                    <option value="3">3</option>
                     <option value="4">4</option>
                     <option value="5">5</option>
+                </select></td>
+                <td class="label half right"><label>Polling</label></td>
+                <td class="half"><select name="interval">
+                    <option value="-1">Off</option>
+                    <option value="30000">30 seconds</option>
+                    <option value="60000">1 minute</option>
+                    <option value="300000">5 minutes</option>
+                    <option value="900000">15 minutes</option>
+                    <option value="3600000">1 hour</option>
                 </select></td>
             </tr>
             </tbody>
         </table>
     </div>
     <div>
-
         <table class="mqConfig">
             <thead>
             <tr>
@@ -51,53 +59,36 @@
             </thead>
             <tbody>
             <tr>
-                <td class="label">Host</td>
-                <td><input type="text" disabled name="host"></td>
-                <td>&nbsp;&nbsp;Port</td>
-                <td><input type="text" disabled name="port"></td>
+                <td class="label"><label>Host</label></td>
+                <td class="half"><input type="text" name="host"></td>
+                <td class="label half right"><label>Port</label></td>
+                <td class="half"><input type="text" name="port"></td>
             </tr>
             <tr>
-                <td class="label">Queue</td>
-                <td ><input type="text" disabled name="queue"></td>
-                <td colspan="2">&nbsp;&nbsp;<label type="text" class="mq status red">Waiting..</label></td>
+                <td class="label"><label>Queue</label></td>
+                <td colspan="3"><input type="text" name="queue"></td>
             </tr>
-            </tbody>
-        </table>
-    </div>
-    <div>
-
-        <table class="pollConfig">
-            <thead>
             <tr>
-                <th colspan="4">Polling Config</th>
-            </tr>
-            </thead>
-            <tbody>
-
-            <tr>
-                <td colspan="3">
-                    <input type="checkbox" name="poll"><label>Enable polling for new jobs, interval in
-                    milliseconds</label>
-                </td>
-                <td>
-                    <input type="text" name="interval" disabled>
+                <td colspan="4">
+                    <button id="saveConfig">Update Config</button>
                 </td>
             </tr>
             </tbody>
         </table>
     </div>
-
 </div>
 
 <div class="stats">
     <p id="stats">Loading stats...</p>
+    <button id="viewLatestTicket">View Latest Ticket</button>
 </div>
 
 <div class="logs">
     <textarea disabled id="logs" rows="15"></textarea>
     <button id="test">Test</button>
     <label class="poll status red"></label>
-    <button id="reset">Clear</button>
+    <label class="mq status red"></label>
+    <button id="reset">Reset</button>
 </div>
 
 

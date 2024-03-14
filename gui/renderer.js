@@ -1,14 +1,42 @@
 const {ipcRenderer} = require("electron");
 const moment = require("moment");
 window.$ = window.jQuery = require("jquery");
-const {pollInterval, activeMq, printService, printer, maxLogSize, maxAttempts} = require("../config.json");
+const {maxLogSize} = require("../app-config.json");
+let printConfig = {};
+let stompSession;
 
-let testBtn, resetBtn;
-let pollCheckbox;
+let testBtn, resetBtn, saveConfigBtn, viewLatestTicketBtn;
 let host, port, queue;
 let url, uuid, password;
 let interval, retries;
 let logsTA, stats;
+
+function populateForm(printConfig) {
+    interval.val(printConfig.printService.poll);
+    host.val(printConfig.activeMq.host);
+    port.val(printConfig.activeMq.port);
+    url.val(printConfig.printService.url);
+    uuid.val(printConfig.printer.uuid);
+    password.val(printConfig.printer.password);
+    queue.val(printConfig.activeMq.queue);
+    retries.val(printConfig.printService.maxAttempts);
+}
+
+function populateStats(data) {
+    stats.text("");
+    stats.append(`Received: ${data.received || ''}</br>`);
+    stats.append(`Processed: ${data.processed || ''}</br>`);
+    stats.append(`Failed: ${data.failed || ''}</br>`);
+    stats.append(`</br>Last Message: </br>`);
+    stats.append(`At: ${data.last?.at || ''}</br>`);
+    stats.append(`Job Id: ${data.last?.jobId || ''}</br>`);
+    stats.append(`Status: ${data.last?.status || ''}`);
+}
+
+ipcRenderer.on("printConfig", (event, data) => {
+    printConfig = data;
+    populateForm(printConfig);
+});
 
 ipcRenderer.on("log", (event, data) => {
     logsTA = $("textarea#logs");
@@ -24,44 +52,46 @@ ipcRenderer.on("log", (event, data) => {
 });
 
 ipcRenderer.on("stats", (event, data) => {
-    stats = $("p#stats");
-    stats.text("");
-    stats.append(`Received: ${data.received || ''}</br>`);
-    stats.append(`Processed: ${data.processed || ''}</br>`);
-    stats.append(`Failed: ${data.failed || ''}</br>`);
-    stats.append(`</br>Last Message: </br>`);
-    stats.append(`At: ${data.last?.at || ''}</br>`);
-    stats.append(`Job Id: ${data.last?.jobId || ''}</br>`);
-    stats.append(`Status: ${data.last?.status || ''}`);
+    populateStats(data)
 });
 
 ipcRenderer.on("status", (event, data) => {
     const status = $(`label.status.${data.type}`);
     status.removeClass('green')
     if (!data.success) {
-        status.text('Failed, ' + data.error);
+        status.text(data.error);
     } else {
         status.addClass('green')
         status.text(data.status);
-        if (data.type == 'poll' && data.status != '') {
-            pollCheckbox.prop('checked', true);
-        }
     }
 });
 
 $(function () {
     testBtn = $("button#test");
+    resetBtn = $("button#reset");
+    saveConfigBtn = $("button#saveConfig");
+    viewLatestTicketBtn = $("button#viewLatestTicket");
+
+    stats = $("p#stats");
+    host = $("input[name='host']");
+    port = $("input[name='port']");
+    url = $("input[name='url']");
+    uuid = $("input[name='uuid']");
+    password = $("input[name='password']");
+    queue = $("input[name='queue']");
+    interval = $("select[name='interval']");
+    retries = $("select[name='retries']");
+
+    viewLatestTicketBtn.off("click");
+    viewLatestTicketBtn.on("click", (event) => {
+        ipcRenderer.send("viewLatestTicket");
+    });
+
     testBtn.off("click");
     testBtn.on("click", (event) => {
         ipcRenderer.send("test");
     });
 
-    pollCheckbox = $("input[name='poll'][type='checkbox']");
-    pollCheckbox.on("change", (event) => {
-        ipcRenderer.send(pollCheckbox.prop("checked") ? 'startPoll' : 'stopPoll');
-    });
-
-    resetBtn = $("button#reset");
     resetBtn.off("click");
     resetBtn.on("click", (event) => {
         logsTA = $("textarea#logs");
@@ -69,23 +99,32 @@ $(function () {
         logsTA.text('');
     });
 
-    host = $("input[name='host']");
-    port = $("input[name='port']");
-    url = $("input[name='url']");
-    uuid = $("input[name='uuid']");
-    password = $("input[name='password']");
-    queue = $("input[name='queue']");
-    interval = $("input[name='interval']");
-    retries = $("input[name='retries']");
+    saveConfigBtn.on("click", async (event) => {
+        const proceed = window.confirm("Changes will take effect after app restart. Continue?");
+        if (proceed) {
+            ipcRenderer.send("updateAppConfig", {
+                "activeMq": {
+                    "host": host.val(),
+                    "port": port.val(),
+                    "queue": queue.val()
+                },
+                "printService": {
+                    "url": url.val(),
+                    "maxAttempts": retries.val(),
+                    "poll": interval.val()
+                },
+                "printer": {
+                    "uuid": uuid.val(),
+                    "password": password.val()
+                }
+            });
+        } else {
+            populateForm(printConfig)
+        }
+    });
 
-    interval.val(pollInterval);
-    host.val(activeMq.host);
-    port.val(activeMq.port);
-    url.val(printService.url);
-    uuid.val(printer.uuid);
-    password.val(printer.password);
-    queue.val(activeMq.queue);
-    retries.val(maxAttempts);
+    populateStats({});
+    ipcRenderer.send("domReady");
 
 });
 

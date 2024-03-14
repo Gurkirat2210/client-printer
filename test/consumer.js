@@ -1,4 +1,4 @@
-const { queue, activeMq } = require("../config.json");
+const { queue, activeMq } = require("../app-config.json");
 const Stomp = require("stomp-client");
 const stompClient = new Stomp(activeMq.host, activeMq.port);
 

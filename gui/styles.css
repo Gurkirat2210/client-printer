@@ -3,17 +3,38 @@ body {
     font-size: 12px;
 }
 
-table, textarea, td input[type=text] {
-    height: auto;
-    width: 100%;
+input[type=text] {
+    width: 400px;
 }
 
-textarea {
-    resize: none;
+select {
+    width: 150px;
+}
+
+td.half {
+    width: 150px;
 }
 
 td.label {
     width: 100px;
+}
+
+.right {
+    text-align: right;
+}
+
+.half input {
+    width: 142px;
+}
+
+.half select {
+    width: 150px;
+}
+
+textarea {
+    resize: none;
+    height: 100%;
+    width: 100%;
 }
 
 button#reset {
@@ -37,15 +58,19 @@ div.stats {
 div.logs {
     width: -webkit-fill-available;
     position: fixed;
-    bottom: 0;
+    bottom: 30px;
+    top: 300px;
     padding-right: 10px;
 }
 
 label.status {
-    color: red;
-    font-weight: bold;
+    padding: 3px;
+    border-radius: 3px;
+    color: white;
+    background: red;
 }
 
 label.status.green {
-    color: green !important;
+    background: green;
 }
+
