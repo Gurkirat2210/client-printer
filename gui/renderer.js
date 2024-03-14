@@ -3,8 +3,15 @@ const moment = require("moment");
 window.$ = window.jQuery = require("jquery");
 const {pollInterval, activeMq, printService, printer, maxLogSize, maxAttempts} = require("../config.json");
 
+let testBtn, resetBtn;
+let pollCheckbox;
+let host, port, queue;
+let url, uuid, password;
+let interval, retries;
+let logsTA, stats;
+
 ipcRenderer.on("log", (event, data) => {
-    const logsTA = $("textarea#logs");
+    logsTA = $("textarea#logs");
     logsTA.append(`${moment()} - ${data}`);
     logsTA.append("\n");
     if (logsTA.text().length > maxLogSize) {
@@ -17,65 +24,59 @@ ipcRenderer.on("log", (event, data) => {
 });
 
 ipcRenderer.on("stats", (event, data) => {
-    const statsTA = $("textarea#stats");
-    statsTA.text("");
-    statsTA.append(`Received: ${data.received}\n`);
-    statsTA.append(`Processed: ${data.processed}\n`);
-    statsTA.append(`Failed: ${data.failed}\n`);
-    statsTA.append(`\nLast Message: \n`);
-    statsTA.append(`At: ${data.last.at}\n`);
-    statsTA.append(`Job Id: ${data.last.jobId}\n`);
-    statsTA.append(`Status: ${data.last.status}`);
+    stats = $("p#stats");
+    stats.text("");
+    stats.append(`Received: ${data.received || ''}</br>`);
+    stats.append(`Processed: ${data.processed || ''}</br>`);
+    stats.append(`Failed: ${data.failed || ''}</br>`);
+    stats.append(`</br>Last Message: </br>`);
+    stats.append(`At: ${data.last?.at || ''}</br>`);
+    stats.append(`Job Id: ${data.last?.jobId || ''}</br>`);
+    stats.append(`Status: ${data.last?.status || ''}`);
 });
 
 ipcRenderer.on("status", (event, data) => {
-    const status = $("label.status");
+    const status = $(`label.status.${data.type}`);
     status.removeClass('green')
     if (!data.success) {
         status.text('Failed, ' + data.error);
-        status.addClass('red')
     } else {
+        status.addClass('green')
         status.text(data.status);
+        if (data.type == 'poll' && data.status != '') {
+            pollCheckbox.prop('checked', true);
+        }
     }
 });
 
 $(function () {
-    const testBtn = $("button#test");
-    const testJobId = $("input#testJobId");
+    testBtn = $("button#test");
     testBtn.off("click");
     testBtn.on("click", (event) => {
-        if (testJobId.val() > 0) {
-            ipcRenderer.send("test", {jobId: testJobId.val()});
-        }
+        ipcRenderer.send("test");
     });
 
-    const pollCheckbox = $("input[name='poll'][type='checkbox']");
+    pollCheckbox = $("input[name='poll'][type='checkbox']");
     pollCheckbox.on("change", (event) => {
         ipcRenderer.send(pollCheckbox.prop("checked") ? 'startPoll' : 'stopPoll');
     });
 
-    const clearBtn = $("button#clear");
-    clearBtn.off("click");
-    clearBtn.on("click", (event) => {
-        const logsTA = $("textarea#logs");
-        ipcRenderer.send('export-logs', logsTA.text())
+    resetBtn = $("button#reset");
+    resetBtn.off("click");
+    resetBtn.on("click", (event) => {
+        logsTA = $("textarea#logs");
+        ipcRenderer.send('reset', logsTA.text())
         logsTA.text('');
     });
 
-    const resetBtn = $("button#reset");
-    resetBtn.off("click");
-    resetBtn.on("click", (event) => {
-        ipcRenderer.send('reset');
-    });
-
-    const host = $("input[name='host']");
-    const port = $("input[name='port']");
-    const url = $("input[name='url']");
-    const uuid = $("input[name='uuid']");
-    const password = $("input[name='password']");
-    const queue = $("input[name='queue']");
-    const interval = $("input[name='interval']");
-    const retries = $("input[name='retries']");
+    host = $("input[name='host']");
+    port = $("input[name='port']");
+    url = $("input[name='url']");
+    uuid = $("input[name='uuid']");
+    password = $("input[name='password']");
+    queue = $("input[name='queue']");
+    interval = $("input[name='interval']");
+    retries = $("input[name='retries']");
 
     interval.val(pollInterval);
     host.val(activeMq.host);
@@ -86,6 +87,5 @@ $(function () {
     queue.val(activeMq.queue);
     retries.val(maxAttempts);
 
-    ipcRenderer.send('dom-ready');
 });
 

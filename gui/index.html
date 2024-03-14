@@ -6,76 +6,98 @@
 </head>
 <body>
 <script src="./renderer.js"></script>
-
 <div class="config">
-    <table>
-        <thead>
-        <tr>
-            <th colspan="4">Service & Printer Config</th>
-        </tr>
-        </thead>
-        <tbody>
-        <tr>
-            <td class="label">URL</td>
-            <td colspan="3"><input type="text" disabled name="url"></td>
-        </tr>
-        <tr>
-            <td class="label">UUID</td>
-            <td colspan="3"><input type="text" disabled name="uuid"></td>
-        </tr>
-        <tr>
-            <td class="label">Password</td>
-            <td><input type="text" disabled name="password"></td>
-            <td class="label">&nbsp;&nbsp;Retries</td>
-            <td><input type="text" disabled name="retries"></td>
-        </tr>
-        <tr>
-            <td colspan="4">
-                <input type="checkbox" name="poll">Check new print jobs every
-                <input type="number" name="interval" disabled> ms
-            </td>
-        </tr>
-        </tbody>
-    </table>
 
+    <div>
+        <table>
+            <thead>
+            <tr>
+                <th colspan="2">Service & Printer Config</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr>
+                <td class="label">URL</td>
+                <td><input type="text" disabled name="url"></td>
+            </tr>
+            <tr>
+                <td class="label">UUID</td>
+                <td><input type="text" disabled name="uuid"></td>
+            </tr>
+            <tr>
+                <td class="label">Password</td>
+                <td><input type="text" disabled name="password"></td>
+            </tr>
+            <tr>
+                <td class="label">Max Attempts</td>
+                <td><select disabled name="retries">
+                    <option value="1">1</option>
+                    <option value="2">2</option>
+                    <option value="3" selected>3</option>
+                    <option value="4">4</option>
+                    <option value="5">5</option>
+                </select></td>
+            </tr>
+            </tbody>
+        </table>
+    </div>
+    <div>
 
-    <table class="mqConfig">
-        <thead>
-        <tr>
-            <th colspan="4">MQ Broker Config</th>
-        </tr>
-        </thead>
-        <tbody>
-        <tr>
-            <td class="label">Host</td>
-            <td><input type="text" disabled name="host"></td>
-            <td>&nbsp;&nbsp;Port</td>
-            <td><input type="text" disabled name="port"></td>
-        </tr>
-        <tr>
-            <td class="label">Queue</td>
-            <td colspan="3"><input type="text" disabled name="queue"></td>
-        </tr>
-        <tr>
-            <td class="label">Test Job Id</td>
-            <td colspan="3">
-                <input id="testJobId" type="number" min="1" value="">
-                <button id="test">Test</button>
-            </td>
-        </tr>
-        </tbody>
-    </table>
+        <table class="mqConfig">
+            <thead>
+            <tr>
+                <th colspan="4">MQ Broker Config</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr>
+                <td class="label">Host</td>
+                <td><input type="text" disabled name="host"></td>
+                <td>&nbsp;&nbsp;Port</td>
+                <td><input type="text" disabled name="port"></td>
+            </tr>
+            <tr>
+                <td class="label">Queue</td>
+                <td ><input type="text" disabled name="queue"></td>
+                <td colspan="2">&nbsp;&nbsp;<label type="text" class="mq status red">Waiting..</label></td>
+            </tr>
+            </tbody>
+        </table>
+    </div>
+    <div>
+
+        <table class="pollConfig">
+            <thead>
+            <tr>
+                <th colspan="4">Polling Config</th>
+            </tr>
+            </thead>
+            <tbody>
+
+            <tr>
+                <td colspan="3">
+                    <input type="checkbox" name="poll"><label>Enable polling for new jobs, interval in
+                    milliseconds</label>
+                </td>
+                <td>
+                    <input type="text" name="interval" disabled>
+                </td>
+            </tr>
+            </tbody>
+        </table>
+    </div>
+
 </div>
 
 <div class="stats">
-    <textarea disabled id="stats" rows="10"></textarea>
-    <button id="reset">Reset Stats</button>
+    <p id="stats">Loading stats...</p>
 </div>
 
 <div class="logs">
     <textarea disabled id="logs" rows="15"></textarea>
-    <label class="status red"></label>
-    <button id="clear">Clear Logs</button>
+    <button id="test">Test</button>
+    <label class="poll status red"></label>
+    <button id="reset">Clear</button>
 </div>
 
 

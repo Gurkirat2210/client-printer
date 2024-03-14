@@ -1,5 +1,6 @@
 body {
-    font-family: monospace;
+    font-family: "Microsoft Sans Serif";
+    font-size: 12px;
 }
 
 table, textarea, td input[type=text] {
@@ -15,13 +16,12 @@ td.label {
     width: 100px;
 }
 
-.logs button#clear, .stats button#reset {
+button#reset {
     float: right;
 }
 
 div {
     padding: 5px;
-
 }
 
 div.config {

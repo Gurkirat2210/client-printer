@@ -4,7 +4,7 @@ const {activeMq, window, pollInterval, fileNameTimestampFmt} = require("./config
 const fs = require("fs");
 const Stomp = require("stomp-client");
 const moment = require("moment");
-const {handlePayload, getJobs} = require("./service");
+const {handlePayload, getJobs, testRetrieveJob} = require("./service");
 const stompClient = new Stomp({
     host: activeMq.host,
     port: activeMq.port,
@@ -24,6 +24,8 @@ let isQuiting;
 let tray;
 let mainWindow;
 let pollTimeout;
+let stompSession;
+let domReady;
 
 const createWindow = () => {
     mainWindow = new BrowserWindow({
@@ -51,9 +53,14 @@ const createWindow = () => {
 
     ipcMain.on("test", async (ipc, args) => {
         try {
+            ipc.reply("log", `Job#TEST: Attempt#1/1: retrieving pdf..`);
+            const pdfStream = await testRetrieveJob(ipc);
+            const fileName = `${__dirname}/pdf/${moment().format(fileNameTimestampFmt)}_TEST.pdf`;
+            ipc.reply("log", `Job#TEST: Attempt#1/1: printing pdf ${fileName}..`);
+            await fs.writeFileSync(fileName, pdfStream);
             stompClient.publish(activeMq.queue, JSON.stringify({
-                label: "received new print order, " + new Date(),
-                jobId: args.jobId,
+                label: "This is test message is pushed to validate if the consumer is working, pushed at: " + new Date(),
+                jobId: -1,
             }))
         } catch (error) {
             ipc.reply("log", error?.message);
@@ -74,15 +81,27 @@ const createWindow = () => {
         try {
             await poll();
             pollTimeout = setInterval(poll, pollInterval);
-            ipc.reply("status", {success: true, status: 'Running'});
+            ipc.reply("status", {
+                success: true,
+                type: 'poll',
+                status: `Polling new jobs every ${pollInterval / 1000} seconds..`
+            });
         } catch (error) {
-            ipc.reply("status", {success: false, error: error.message});
+            ipc.reply("status", {
+                success: false, type: 'poll',
+                error: error.message
+            });
         }
     });
 
     ipcMain.on("stopPoll", async (ipc, args) => {
         clearInterval(pollTimeout);
-        ipc.reply("status", {success: true, status: ''});
+        ipc.reply("log", `Polling for new jobs STOPPED`);
+        ipc.reply("status", {
+            success: true,
+            type: 'poll',
+            status: ''
+        });
     });
 
     ipcMain.on("reset", async (ipc, args) => {
@@ -90,14 +109,28 @@ const createWindow = () => {
         stats.processed = 0;
         stats.failed = 0;
         stats.last = {}
+        const fileName = `${__dirname}/logs/${moment().format(fileNameTimestampFmt)}.logs`;
+        await fs.writeFileSync(fileName, args);
         ipc.reply("stats", stats);
     });
 
-    ipcMain.on("export-logs", async (ipc, args) => {
-        const fileName = `${__dirname}/logs/${moment().format(fileNameTimestampFmt)}.logs`;
-        await fs.writeFileSync(fileName, args);
+    mainWindow.webContents.on('did-finish-load', () => {
+        domReady = true;
+        if (pollTimeout?._onTimeout) {
+            ipc.send("status", {
+                success: true,
+                type: 'poll',
+                status: `Polling new jobs every ${pollInterval / 1000} seconds..`
+            });
+        }
+        if (stompSession) {
+            ipc.send("status", {
+                success: true,
+                type: 'mq',
+                status: `Connected, ${stompSession}`
+            });
+        }
     });
-
 };
 
 function setupTray() {
@@ -109,22 +142,31 @@ function setupTray() {
     })
 }
 
+const ipc = {
+    send: (channel, data) => {
+        setTimeout(() => mainWindow.webContents.send(channel, data), domReady ? 0 : 5000);
+    }
+}
+
 app.whenReady().then(async () => {
     await setupTray();
     await createWindow();
 
-    const ipc = {
-        reply: (channel, data) => {
-            mainWindow.webContents.send(channel, data);
-        }
-    }
-
     stompClient.connect((sessionId) => {
+        stompSession = sessionId;
+        ipc.send("status", {
+            success: true,
+            type: 'mq',
+            status: `Connected, ${sessionId}`
+        });
         stompClient.subscribe(activeMq.queue, async (body, headers) => {
             try {
                 stats.received++;
-                ipc.reply("log", `Received message, ${body}`);
+                ipc.send("log", `Received message, ${body}`);
                 body = JSON.parse(body);
+                if (body.jobId < 0) {
+                    return true;
+                }
                 stats.last.at = moment().toLocaleString();
                 stats.last.jobId = body.jobId;
                 const success = await handlePayload(body, ipc);
@@ -135,12 +177,16 @@ app.whenReady().then(async () => {
                     stats.failed++;
                 }
             } catch (error) {
-                ipc.reply("log", `handling failed, ERROR: ${error.message}`);
+                ipc.send("log", `handling failed, ERROR: ${error.message}`);
             }
-            ipc.reply("stats", stats);
+            ipc.send("stats", stats);
         });
     }, (error) => {
-        ipc.reply("status", {success: false, error: error?.message});
+        ipc.send("status", {
+            success: false,
+            error: error?.message,
+            type: 'mq'
+        });
     });
 
 
