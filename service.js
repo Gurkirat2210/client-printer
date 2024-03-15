@@ -56,7 +56,7 @@ async function sendAck(job) {
         data: job
     };
     const response = await axios(config);
-    return response.status === 200;
+    return response;
 }
 
 async function handlePayload(body, ipc) {
@@ -96,7 +96,7 @@ async function handlePayload(body, ipc) {
 }
 
 
-async function startPolling(ipc) {
+async function startPolling(ipc, stats) {
     let pollingCfg;
     try {
         const poll = async () => {
@@ -105,9 +105,19 @@ async function startPolling(ipc) {
                 ipc.reply("log", "No jobs found");
             }
             for (let i in jobs) {
-                await handlePayload(JSON.stringify(jobs[i]), ipc)
+                stats.received++;
+                const ack= await handlePayload(jobs[i], ipc)
+                if (ack.success) {
+                    stats.last.fileName = ack.fileName;
+                    stats.last.at = moment().toLocaleString();
+                    stats.last.jobId = jobs[i].jobId;
+                    stats.processed++;
+                } else {
+                    stats.failed++;
+                }
             }
             ipc.reply("log", `Sleeping for ${printService.poll / 1000} seconds.`);
+            ipc.reply("stats", stats);
         }
 
         await poll();
@@ -180,7 +190,7 @@ function updateMQStatus(stompSession, ipc, error) {
         ipc.reply("status", {
             success: false,
             type: 'mq',
-            error: `✘ MQ Disconnected` + (error ? `(${error})` : '')
+            error: `✘ MQ Disconnected` + (error ? ` (${error})` : '')
         });
     }
 }

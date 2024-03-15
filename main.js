@@ -34,11 +34,13 @@ let domReady;
 const createWindow = () => {
     mainWindow = new BrowserWindow({
         ...window,
+        icon: path.join(__dirname, 'gui/icon.png'),
         webPreferences: {
             nodeIntegration: true,
             contextIsolation: false
-        },
+        }
     });
+
     // mainWindow.webContents.openDevTools();
     mainWindow.loadFile("gui/index.html");
 
@@ -121,7 +123,7 @@ const createWindow = () => {
 };
 
 function setupTray() {
-    tray = new Tray(path.join(__dirname, 'gui/tray.png'));
+    tray = new Tray(path.join(__dirname, 'gui/icon.png'));
     tray.on("click", () => {
         if (mainWindow) {
             mainWindow.show();
@@ -145,7 +147,7 @@ app.whenReady().then(async () => {
 
     if (printService.poll > 0) {
         printService.poll = printService.poll > 30000 ? printService.poll : 30000;
-        pollingCfg = await startPolling(ipc);
+        pollingCfg = await startPolling(ipc, stats);
     }
 
     app.on("activate", () => {

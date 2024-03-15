@@ -26,11 +26,9 @@ function populateStats(data) {
     stats.text("");
     stats.append(`Received: ${data.received || ''}</br>`);
     stats.append(`Processed: ${data.processed || ''}</br>`);
-    stats.append(`Failed: ${data.failed || ''}</br>`);
-    stats.append(`</br>Last Message: </br>`);
-    stats.append(`At: ${data.last?.at || ''}</br>`);
-    stats.append(`Job Id: ${data.last?.jobId || ''}</br>`);
-    stats.append(`Status: ${data.last?.status || ''}`);
+    stats.append(`Failed: ${data.failed || ''}</br></br>`);
+    stats.append(`Last print time: ${data.last?.at || ''}</br>`);
+    stats.append(`Last print Job ID: ${data.last?.jobId || ''}</br>`);
 }
 
 ipcRenderer.on("printConfig", (event, data) => {
