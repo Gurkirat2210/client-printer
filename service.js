@@ -72,14 +72,14 @@ async function handlePrintOrder(body, ipc, cfg) {
     };
     do {
         try {
-            ipc.reply("log", `Job#${jobId}: Attempt#${attempt}/${cfg.svc.attempts}: retrieving pdf`);
+            ipc.reply("log", `Job#${jobId}: Retrieving pdf`);
             const pdfStream = await retrieveJob(body, cfg);
-            ipc.reply("log", `Job#${jobId}: Attempt#${attempt}/${cfg.svc.attempts}: printing pdf ${ack.fileName}`);
+            ipc.reply("log", `Job#${jobId}: Printing pdf ${ack.fileName}`);
             await fs.writeFileSync(ack.fileName, pdfStream);
             //todo print & delete file
             ack.success = true;
         } catch (error) {
-            ipc.reply("log", `Job#${jobId}: Attempt#${attempt}/${cfg.svc.attempts}: ERROR: ${error.message}`);
+            ipc.reply("log", `Job#${jobId}: Attempt#${attempt}/${cfg.svc.attempts} failed: ERROR: ${error.message}`);
         }
         attempt++;
     } while (!ack.success && attempt <= cfg.svc.attempts);
@@ -105,7 +105,7 @@ async function startPolling(ipc, stats, cfg) {
     try {
         const poll = async () => {
             await process(ipc, stats, cfg);
-            ipc.reply("log", `Sleeping for ${cfg.svc.poll / 1000} seconds.`);
+            ipc.reply("log", `Sleeping for ${cfg.svc.poll / 1000} seconds`);
             ipc.reply("stats", stats);
         }
 
@@ -144,8 +144,9 @@ function subscribeToMq(ipc, stats, cfg, callback) {
     stompClient.connect((sessionId) => {
         updateMQStatus(sessionId, ipc);
         stompClient.subscribe(cfg.mq.queue, async (body, headers) => {
+            const msgId = headers["message-id"];
             try {
-                ipc.reply("log", `Received message, ${body}`);
+                ipc.reply("log", `${msgId}: Received message, ${body}`);
                 body = JSON.parse(body);
                 if (body.jobId == -1) {
                     return true;
@@ -154,14 +155,14 @@ function subscribeToMq(ipc, stats, cfg, callback) {
                     await process(ipc, stats, cfg);
                 }
             } catch (error) {
-                ipc.reply("log", `handling failed, ERROR: ${error.message}`);
+                ipc.reply("log", `${msgId}: Processing failed, ERROR: ${error.message}`);
             }
             ipc.reply("stats", stats);
         });
         return callback(sessionId, stompClient);
     }, (error) => {
         updateMQStatus(null, ipc, error.message);
-        return callback(null);
+        return callback();
     });
 }
 
