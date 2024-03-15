@@ -122,6 +122,18 @@ const createWindow = () => {
         if (cfg) {
             ipc.reply("cfg", cfg);
         }
+
+        if (cfg.mq && !stompClient) {
+            subscribeToMq(ipc, stats, cfg, (stomp, session) => {
+                stompSession = session;
+                stompClient = stomp;
+            })
+        }
+
+        if (cfg.svc.poll && !pollingCfg) {
+            pollingCfg = await startPolling(ipc, stats, cfg);
+        }
+
         updatePollStatus(pollingCfg, ipc)
         updateMQStatus(stompSession, ipc)
     });
@@ -136,27 +148,9 @@ function setupTray() {
     })
 }
 
-const ipc = {
-    reply: (channel, data) => {
-        setTimeout(() => mainWindow.webContents.send(channel, data), domReady ? 0 : 5000);
-    }
-}
-
 app.whenReady().then(async () => {
     await setupTray();
     await createWindow();
-
-    if (cfg.mq) {
-        subscribeToMq(ipc, stats, cfg, (stompClient, session) => {
-            stompSession = session;
-            stompClient = stompClient;
-        })
-    }
-
-    if (cfg.svc.poll) {
-        pollingCfg = await startPolling(ipc, stats, cfg);
-    }
-
     app.on("activate", () => {
         // On macOS it's common to re-create a window in the app when the
         // dock icon is clicked and there are no other windows open.
