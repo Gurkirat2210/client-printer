@@ -2,7 +2,7 @@ const {ipcRenderer} = require("electron");
 const moment = require("moment");
 window.$ = window.jQuery = require("jquery");
 const {maxLogSize} = require("../config.json");
-let printConfig = {};
+let cfg = {};
 
 let testBtn, resetBtn, saveConfigBtn, viewLatestTicketBtn, showPassBtn;
 let host, port, queue;
@@ -11,7 +11,7 @@ let interval, retries;
 let logsTA, lastStatus;
 let testJobId;
 
-function populateForm(cfg) {
+function populateForm() {
     host.val(cfg.mq.host);
     port.val(cfg.mq.port);
     queue.val(cfg.mq.queue);
@@ -50,8 +50,8 @@ function setupCharts(data) {
 }
 
 ipcRenderer.on("cfg", (event, data) => {
-    printConfig = data;
-    populateForm(printConfig);
+    cfg = data;
+    populateForm();
 });
 
 ipcRenderer.on("log", (event, data) => {
@@ -142,7 +142,7 @@ $(function () {
                 }
             });
         } else {
-            populateForm(printConfig)
+            populateForm(cfg)
         }
     });
 

@@ -18,7 +18,7 @@
     "svc": {
       "url": "http://localhost:8080",
       "attempts": "1",
-      "poll": "-1"
+      "poll": ""
     },
     "printer": {
       "uuid": "b109ec60-2047-43cb-8962-7d132cc18fc2",

@@ -122,18 +122,15 @@ const createWindow = () => {
         if (cfg) {
             ipc.reply("cfg", cfg);
         }
-
         if (cfg.mq && !stompClient) {
             subscribeToMq(ipc, stats, cfg, (stomp, session) => {
                 stompSession = session;
                 stompClient = stomp;
             })
         }
-
         if (cfg.svc.poll && !pollingCfg) {
             pollingCfg = await startPolling(ipc, stats, cfg);
         }
-
         updatePollStatus(pollingCfg, ipc)
         updateMQStatus(stompSession, ipc)
     });
