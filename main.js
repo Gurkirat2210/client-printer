@@ -89,18 +89,22 @@ const createWindow = () => {
                 label: "This is test message is pushed to validate if the consumer is working, pushed at: " + new Date(),
                 jobId: -1,
             }))
+            stompClient.publish(activeMq.queue, JSON.stringify({
+                label: "This is test message is pushed to simulate new meal order message, pushed at: " + new Date(),
+                jobId: 0,
+            }))
         } catch (error) {
             ipc.reply("log", error?.message);
         }
     });
 
     ipcMain.on("reset", async (ipc, args) => {
+        const fileName = `${__dirname}/logs/${moment().format(fileNameTimestampFmt)}.logs`;
+        await fs.writeFileSync(fileName, JSON.stringify(stats) + '\n\n' + args);
         stats.received = 0;
         stats.processed = 0;
         stats.failed = 0;
         stats.last = {}
-        const fileName = `${__dirname}/logs/${moment().format(fileNameTimestampFmt)}.logs`;
-        await fs.writeFileSync(fileName, args);
         ipc.reply("stats", stats);
     });
 

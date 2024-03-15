@@ -29,7 +29,7 @@
             </tr>
             <tr>
                 <td class="label">Password</td>
-                <td colspan="3"><input type="text" name="password"></td>
+                <td colspan="3"><input type="password" name="password"><button id="showPass">&#128065;</button></td>
             </tr>
             <tr>
                 <td class="label">Max Attempts</td>
@@ -85,11 +85,11 @@
     <div class="chart">
         <canvas id="chart"></canvas>
     </div>
-    <p id="stats">Loading stats...</p>
 </div>
 
 <div class="logs">
     <textarea disabled id="logs" rows="15"></textarea>
+<!--    <input type="text" min="1" placeholder="Test Job Id" name="testJobId" value="">-->
     <button id="test">Test</button>
     <label class="poll status"></label>
     <label class="mq status"></label>

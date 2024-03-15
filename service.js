@@ -59,7 +59,7 @@ async function sendAck(job) {
     return response;
 }
 
-async function handlePayload(body, ipc) {
+async function handlePrintOrder(body, ipc) {
     const jobId = body.jobId;
     let attempt = 1;
     ipc.reply("log", `Job#${jobId}: PROCESSING..`);
@@ -95,26 +95,11 @@ async function handlePayload(body, ipc) {
     return ack;
 }
 
-
 async function startPolling(ipc, stats) {
     let pollingCfg;
     try {
         const poll = async () => {
-            const jobs = await getJobs(ipc);
-            if (!jobs.length) {
-                ipc.reply("log", "No jobs found");
-            }
-            for (let i in jobs) {
-                const ack= await handlePayload(jobs[i], ipc)
-                if (ack.success) {
-                    stats.last.fileName = ack.fileName;
-                    stats.last.at = moment().toLocaleString();
-                    stats.last.jobId = jobs[i].jobId;
-                    stats.processed++;
-                } else {
-                    stats.failed++;
-                }
-            }
+            await process(ipc, stats);
             ipc.reply("log", `Sleeping for ${printService.poll / 1000} seconds.`);
             ipc.reply("stats", stats);
         }
@@ -128,6 +113,24 @@ async function startPolling(ipc, stats) {
     return pollingCfg;
 }
 
+async function process(ipc, stats) {
+    const jobs = await getJobs(ipc);
+    if (!jobs.length) {
+        ipc.reply("log", "No jobs found");
+    }
+    for (let i in jobs) {
+        const ack= await handlePrintOrder(jobs[i], ipc)
+        if (ack.success) {
+            stats.last.fileName = ack.fileName;
+            stats.last.at = moment().toLocaleString();
+            stats.last.jobId = jobs[i].jobId;
+            stats.processed++;
+        } else {
+            stats.failed++;
+        }
+    }
+}
+
 function subscribeToMq(ipc, stompClient, activeMq, stats, callback) {
     let stompSession;
     stompClient.connect((sessionId) => {
@@ -137,17 +140,11 @@ function subscribeToMq(ipc, stompClient, activeMq, stats, callback) {
             try {
                 ipc.reply("log", `Received message, ${body}`);
                 body = JSON.parse(body);
-                if (body.jobId < 0) {
+                if (body.jobId == -1) {
                     return true;
                 }
-                const ack = await handlePayload(body, ipc);
-                if (ack.success) {
-                    stats.last.fileName = ack.fileName;
-                    stats.last.at = moment().toLocaleString();
-                    stats.last.jobId = body.jobId;
-                    stats.processed++;
-                } else {
-                    stats.failed++;
+                if (body.jobId == 0) {
+                    await process(ipc, stats);
                 }
             } catch (error) {
                 ipc.reply("log", `handling failed, ERROR: ${error.message}`);
@@ -194,7 +191,6 @@ function updateMQStatus(stompSession, ipc, error) {
 }
 
 module.exports = {
-    handlePayload,
     subscribeToMq,
     testRetrieveJob,
     startPolling,

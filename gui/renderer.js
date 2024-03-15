@@ -4,11 +4,12 @@ window.$ = window.jQuery = require("jquery");
 const {maxLogSize} = require("../app-config.json");
 let printConfig = {};
 
-let testBtn, resetBtn, saveConfigBtn, viewLatestTicketBtn;
+let testBtn, resetBtn, saveConfigBtn, viewLatestTicketBtn, showPassBtn;
 let host, port, queue;
 let url, uuid, password;
 let interval, retries;
-let logsTA, stats, lastStatus;
+let logsTA, lastStatus;
+let testJobId;
 
 function populateForm(printConfig) {
     interval.val(printConfig.printService.poll);
@@ -22,28 +23,29 @@ function populateForm(printConfig) {
 }
 
 function populateStats(data) {
-    stats.text("");
-    data = {processed: 9, failed: 3, last: {jobId: 1, at: moment().toLocaleString()}}
-    lastStatus.text(data.last?.jobId ? `Last printed #${data.last?.jobId} at ${data.last?.at}` : '');
+    // data = {processed: 9, failed: 3, last: {jobId: 1, at: moment().toLocaleString()}}
+    viewLatestTicketBtn.show();
+    if (data.last?.jobId) {
+        lastStatus.text(`Last printed #${data.last?.jobId} at ${data.last?.at}`);
+        lastStatus.show();
+        viewLatestTicketBtn.show();
+    } else {
+        lastStatus.hide();
+        viewLatestTicketBtn.hide();
+    }
     setupCharts(data);
 }
 
 function setupCharts(data) {
     var ctx = $('#chart')[0].getContext('2d');
     var chart = new Chart(ctx, {
-        type: 'doughnut',
-        data: {
-            labels: ['Printed', 'Failed'],
-            datasets: [{
-                label: 'Print Jobs',
-                data: [data.processed, data.failed],
-                backgroundColor: ['seagreen', 'orangered'],
+        type: 'doughnut', data: {
+            labels: ['Printed', 'Failed'], datasets: [{
+                label: 'Print Jobs', data: [data.processed, data.failed], backgroundColor: ['seagreen', 'orangered'],
             }]
-        },
-        options: {
+        }, options: {
             // legend: false,
-            responsive: true,
-            maintainAspectRatio: false,
+            responsive: true, maintainAspectRatio: false,
         }
     });
 }
@@ -87,9 +89,10 @@ $(function () {
     resetBtn = $("button#reset");
     saveConfigBtn = $("button#saveConfig");
     viewLatestTicketBtn = $("button#viewLatestTicket");
+    showPassBtn = $("button#showPass");
 
+    testJobId = $('input[name="testJobId"]');
     lastStatus = $("label.last.status");
-    stats = $("p#stats");
     host = $("input[name='host']");
     port = $("input[name='port']");
     url = $("input[name='url']");
@@ -106,33 +109,36 @@ $(function () {
 
     testBtn.off("click");
     testBtn.on("click", (event) => {
-        ipcRenderer.send("test");
+        ipcRenderer.send("test", testJobId.val());
     });
 
     resetBtn.off("click");
     resetBtn.on("click", (event) => {
         logsTA = $("textarea#logs");
         ipcRenderer.send('reset', logsTA.text())
+        const proceed = window.confirm("Save current logs to file before clearing?");
+        if (proceed) {
+            ipcRenderer.send('reset', logsTA.text())
+        }
         logsTA.text('');
     });
 
+    showPassBtn.off("click");
+    showPassBtn.on("click", (event) => {
+        password.attr("type", "text")
+        setTimeout(() => password.attr("type", "password"), 3000)
+    });
+
     saveConfigBtn.on("click", async (event) => {
-        const proceed = window.confirm("Changes will take effect after app restart. Continue?");
+        const proceed = window.confirm("Update config and restart app?");
         if (proceed) {
             ipcRenderer.send("updateAppConfig", {
                 "activeMq": {
-                    "host": host.val(),
-                    "port": port.val(),
-                    "queue": queue.val()
-                },
-                "printService": {
-                    "url": url.val(),
-                    "maxAttempts": retries.val(),
-                    "poll": interval.val()
-                },
-                "printer": {
-                    "uuid": uuid.val(),
-                    "password": password.val()
+                    "host": host.val(), "port": port.val(), "queue": queue.val()
+                }, "printService": {
+                    "url": url.val(), "maxAttempts": retries.val(), "poll": interval.val()
+                }, "printer": {
+                    "uuid": uuid.val(), "password": password.val()
                 }
             });
         } else {
