@@ -49,7 +49,7 @@ function setupCharts(data) {
     });
 }
 
-ipcRenderer.on("printConfig", (event, data) => {
+ipcRenderer.on("cfg", (event, data) => {
     printConfig = data;
     populateForm(printConfig);
 });

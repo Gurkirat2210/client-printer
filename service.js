@@ -1,6 +1,6 @@
 const axios = require("axios");
 const fs = require("fs");
-const {fileNameTimestampFmt, cfg: defaultCfg, exportFolder} = require("./config.json");
+const {fileNameTimestampFmt, defaultCfg, exportFolder} = require("./config.json");
 const moment = require("moment");
 const Stomp = require("stomp-client");
 const path = require("node:path");
@@ -198,7 +198,8 @@ function updateMQStatus(stompSession, ipc, error) {
     }
 }
 
-async function initFoldersAndCfg() {
+function initFoldersAndCfg() {
+    let cfg = defaultCfg;
     const exportPath = path.join(app.getPath('home'), exportFolder);
     if (!fs.existsSync(exportPath)) {
         fs.mkdirSync(exportPath);
