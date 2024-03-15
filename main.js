@@ -4,7 +4,13 @@ const {window, fileNameTimestampFmt, exportFolder} = require("./app-config.json"
 const fs = require("fs");
 const Stomp = require("stomp-client");
 const moment = require("moment");
-const {subscribeToMq, updatePollStatus, startPolling, testRetrieveJob, updateMQStatus} = require("./service");
+const {
+    subscribeToMq,
+    updatePollStatus,
+    startPolling,
+    testRetrieveJob,
+    updateMQStatus
+} = require("./service");
 
 const stats = {
     received: 0,
@@ -97,7 +103,7 @@ const createWindow = () => {
     ipcMain.on("test", async (ipc, args) => {
         try {
             ipc.reply("log", `Job#TEST: Attempt#1/1: retrieving pdf..`);
-            const pdfStream = await testRetrieveJob(ipc);
+            const pdfStream = await testRetrieveJob(printConfig);
             const fileName = `${pdfPath}/${moment().format(fileNameTimestampFmt)}_TEST.pdf`;
             ipc.reply("log", `Job#TEST: Attempt#1/1: printing pdf ${fileName}..`);
             await fs.writeFileSync(fileName, pdfStream);
@@ -162,12 +168,11 @@ app.whenReady().then(async () => {
     await createWindow();
 
     if (printConfig.activeMq) {
-        subscribeToMq(ipc, stompClient, activeMq, stats, pdfPath, (session) => stompSession = session);
+        subscribeToMq(ipc, stompClient, stats, pdfPath, printConfig, (session) => stompSession = session);
     }
 
-    if (printService.poll >= 0) {
-        printService.poll = printService.poll > 30000 ? printService.poll : 30000;
-        pollingCfg = await startPolling(ipc, stats, pdfPath);
+    if (printService.poll) {
+        pollingCfg = await startPolling(ipc, stats, pdfPath, printConfig);
     }
 
     app.on("activate", () => {
