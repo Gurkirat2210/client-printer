@@ -1,6 +1,7 @@
 {
   "maxLogSize": 100000,
   "fileNameTimestampFmt": "MMDDYYYYHHmmss",
+  "exportFolder": "ClientPrinter2024",
   "window": {
     "width": 1000,
     "height": 600,

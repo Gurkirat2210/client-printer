@@ -66,7 +66,7 @@ async function handlePrintOrder(body, ipc) {
     const ack = {
         jobId: jobId,
         printServerPassword: printer.password,
-        fileName: `${__dirname}/pdf/${moment().format(fileNameTimestampFmt)}_${jobId}.pdf`
+        fileName: `${pdfPath}/${moment().format(fileNameTimestampFmt)}_${jobId}.pdf`
     };
     do {
         try {
@@ -95,11 +95,11 @@ async function handlePrintOrder(body, ipc) {
     return ack;
 }
 
-async function startPolling(ipc, stats) {
+async function startPolling(ipc, stats, pdfPath) {
     let pollingCfg;
     try {
         const poll = async () => {
-            await process(ipc, stats);
+            await process(ipc, stats, pdfPath);
             ipc.reply("log", `Sleeping for ${printService.poll / 1000} seconds.`);
             ipc.reply("stats", stats);
         }
@@ -113,13 +113,13 @@ async function startPolling(ipc, stats) {
     return pollingCfg;
 }
 
-async function process(ipc, stats) {
+async function process(ipc, stats, pdfPath) {
     const jobs = await getJobs(ipc);
     if (!jobs.length) {
         ipc.reply("log", "No jobs found");
     }
     for (let i in jobs) {
-        const ack= await handlePrintOrder(jobs[i], ipc)
+        const ack= await handlePrintOrder(jobs[i], ipc, pdfPath)
         if (ack.success) {
             stats.last.fileName = ack.fileName;
             stats.last.at = moment().toLocaleString();
@@ -131,7 +131,7 @@ async function process(ipc, stats) {
     }
 }
 
-function subscribeToMq(ipc, stompClient, activeMq, stats, callback) {
+function subscribeToMq(ipc, stompClient, activeMq, stats, pdfPath, callback) {
     let stompSession;
     stompClient.connect((sessionId) => {
         stompSession = sessionId;
@@ -144,7 +144,7 @@ function subscribeToMq(ipc, stompClient, activeMq, stats, callback) {
                     return true;
                 }
                 if (body.jobId == 0) {
-                    await process(ipc, stats);
+                    await process(ipc, stats, pdfPath);
                 }
             } catch (error) {
                 ipc.reply("log", `handling failed, ERROR: ${error.message}`);

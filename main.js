@@ -1,11 +1,10 @@
 const {dialog, app, BrowserWindow, Tray, ipcMain, ipcRenderer} = require("electron");
 const path = require("node:path");
-const {window, fileNameTimestampFmt} = require("./app-config.json");
+const {window, fileNameTimestampFmt, exportFolder} = require("./app-config.json");
 const fs = require("fs");
 const Stomp = require("stomp-client");
 const moment = require("moment");
 const {subscribeToMq, updatePollStatus, startPolling, testRetrieveJob, updateMQStatus} = require("./service");
-
 const printConfig = require("./print-config.json");
 const {copyFileSync} = require("fs");
 const {activeMq, printService} = printConfig;
@@ -24,6 +23,19 @@ const stats = {
         fileName: null
     },
 }
+const exportPath = path.join(app.getPath('home'), exportFolder);
+if (!fs.existsSync(exportPath)) {
+    fs.mkdirSync(exportPath);
+}
+const pdfPath = path.join(exportPath, 'pdf');
+if (!fs.existsSync(pdfPath)) {
+    fs.mkdirSync(pdfPath);
+}
+const logPath = path.join(exportPath, 'log');
+if (!fs.existsSync(logPath)) {
+    fs.mkdirSync(logPath);
+}
+
 let isQuiting;
 let tray;
 let mainWindow;
@@ -82,7 +94,7 @@ const createWindow = () => {
         try {
             ipc.reply("log", `Job#TEST: Attempt#1/1: retrieving pdf..`);
             const pdfStream = await testRetrieveJob(ipc);
-            const fileName = `${__dirname}/pdf/${moment().format(fileNameTimestampFmt)}_TEST.pdf`;
+            const fileName = `${pdfPath}/${moment().format(fileNameTimestampFmt)}_TEST.pdf`;
             ipc.reply("log", `Job#TEST: Attempt#1/1: printing pdf ${fileName}..`);
             await fs.writeFileSync(fileName, pdfStream);
             stompClient.publish(activeMq.queue, JSON.stringify({
@@ -99,7 +111,7 @@ const createWindow = () => {
     });
 
     ipcMain.on("reset", async (ipc, args) => {
-        const fileName = `${__dirname}/logs/${moment().format(fileNameTimestampFmt)}.logs`;
+        const fileName = `${logPath}/${moment().format(fileNameTimestampFmt)}.logs`;
         await fs.writeFileSync(fileName, JSON.stringify(stats) + '\n\n' + args);
         stats.received = 0;
         stats.processed = 0;
@@ -146,12 +158,12 @@ app.whenReady().then(async () => {
     await createWindow();
 
     if (printConfig.activeMq) {
-        subscribeToMq(ipc, stompClient, activeMq, stats, (session) => stompSession = session);
+        subscribeToMq(ipc, stompClient, activeMq, stats, pdfPath, (session) => stompSession = session);
     }
 
     if (printService.poll > 0) {
         printService.poll = printService.poll > 30000 ? printService.poll : 30000;
-        pollingCfg = await startPolling(ipc, stats);
+        pollingCfg = await startPolling(ipc, stats, pdfPath);
     }
 
     app.on("activate", () => {

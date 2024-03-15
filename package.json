@@ -1,7 +1,7 @@
 {
-  "name": "client-printer",
+  "name": "ClientPrinter2024",
   "version": "1.0.0",
-  "description": "MyDining Client Printer 2024",
+  "description": "Client Printer 2024",
   "main": "main.js",
   "scripts": {
     "start": "electron-forge start",
