@@ -25,15 +25,11 @@ if (!fs.existsSync(pdfPath)) {
     fs.mkdirSync(pdfPath);
 }
 const logPath = path.join(exportPath, 'log');
-if (!fs.existsSync(logPath)) {
+if (fs.existsSync(logPath)) {
     fs.mkdirSync(logPath);
 }
 
-let printConfig = require("./print-config.json");
-const configPath = path.join(exportPath, 'print-config.json');
-if (fs.existsSync(configPath)) {
-    printConfig = require(configPath)
-}
+const printConfig = require(path.join(exportPath, "/print-config.json")) || require("./print-config.json");
 const {activeMq, printService} = printConfig;
 const stompClient = new Stomp({
     host: activeMq?.host,
