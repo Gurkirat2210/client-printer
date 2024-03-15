@@ -1,17 +1,17 @@
-const {dialog, app, BrowserWindow, Tray, ipcMain, ipcRenderer} = require("electron");
+const {dialog, app, BrowserWindow, Tray, ipcMain} = require("electron");
 const path = require("node:path");
-const {window, fileNameTimestampFmt, exportFolder} = require("./app-config.json");
+const {window, fileNameTimestampFmt} = require("./app-config.json");
 const fs = require("fs");
-const Stomp = require("stomp-client");
 const moment = require("moment");
 const {
     subscribeToMq,
     updatePollStatus,
     startPolling,
     testRetrieveJob,
-    updateMQStatus
+    updateMQStatus,
+    initFoldersAndCfg
 } = require("./service");
-
+const cfg = await initFoldersAndCfg(require("./print-config.json"));
 const stats = {
     received: 0,
     processed: 0,
@@ -22,30 +22,8 @@ const stats = {
         fileName: null
     },
 }
-const exportPath = path.join(app.getPath('home'), exportFolder);
-if (!fs.existsSync(exportPath)) {
-    fs.mkdirSync(exportPath);
-}
-const pdfPath = path.join(exportPath, 'pdf');
-if (!fs.existsSync(pdfPath)) {
-    fs.mkdirSync(pdfPath);
-}
-const logPath = path.join(exportPath, 'log');
-if (!fs.existsSync(logPath)) {
-    fs.mkdirSync(logPath);
-}
 
-const configPath = path.join(exportPath, 'print-config.json');
-let printConfig = require("./print-config.json");
-if (fs.existsSync(configPath)) {
-    printConfig = require(configPath);
-}
-const {activeMq, printService} = printConfig;
-const stompClient = new Stomp({
-    host: activeMq?.host,
-    port: activeMq?.port,
-});
-
+let stompClient;
 let isQuiting;
 let tray;
 let mainWindow;
@@ -102,26 +80,28 @@ const createWindow = () => {
 
     ipcMain.on("test", async (ipc, args) => {
         try {
-            ipc.reply("log", `Job#TEST: Attempt#1/1: retrieving pdf..`);
-            const pdfStream = await testRetrieveJob(printConfig);
-            const fileName = `${pdfPath}/${moment().format(fileNameTimestampFmt)}_TEST.pdf`;
-            ipc.reply("log", `Job#TEST: Attempt#1/1: printing pdf ${fileName}..`);
+            ipc.reply("log", `Job#TEST: Attempt#1/1: retrieving pdf`);
+            const pdfStream = await testRetrieveJob(cfg);
+            const fileName = `${cfg.pdfPath}/${moment().format(fileNameTimestampFmt)}_TEST.pdf`;
+            ipc.reply("log", `Job#TEST: Attempt#1/1: printing pdf ${fileName}`);
             await fs.writeFileSync(fileName, pdfStream);
-            stompClient.publish(activeMq.queue, JSON.stringify({
-                label: "This is test message is pushed to validate if the consumer is working, pushed at: " + new Date(),
-                jobId: -1,
-            }))
-            stompClient.publish(activeMq.queue, JSON.stringify({
-                label: "This is test message is pushed to simulate new meal order message, pushed at: " + new Date(),
-                jobId: 0,
-            }))
+            if (stompClient) {
+                stompClient.publish(cfg.mq.queue, JSON.stringify({
+                    label: "This is test message is pushed to validate if the consumer is working, pushed at: " + new Date(),
+                    jobId: -1,
+                }))
+                stompClient.publish(cfg.mq.queue, JSON.stringify({
+                    label: "This is test message is pushed to simulate new meal order message, pushed at: " + new Date(),
+                    jobId: 0,
+                }))
+            }
         } catch (error) {
             ipc.reply("log", error?.message);
         }
     });
 
     ipcMain.on("reset", async (ipc, args) => {
-        const fileName = `${configPath}/${moment().format(fileNameTimestampFmt)}.logs`;
+        const fileName = `${logPath}/${moment().format(fileNameTimestampFmt)}.logs`;
         await fs.writeFileSync(fileName, JSON.stringify(stats) + '\n\n' + args);
         stats.received = 0;
         stats.processed = 0;
@@ -131,17 +111,16 @@ const createWindow = () => {
     });
 
     ipcMain.on("updateAppConfig", async (ipc, args) => {
-        const fileName = path.join(exportPath, `/print-config.json`);
-        await fs.writeFileSync(fileName, JSON.stringify(args));
-        ipc.reply("printConfig", printConfig);
+        await fs.writeFileSync(cfg.configPath, JSON.stringify(args));
+        ipc.reply("cfg", cfg);
         app.relaunch()
         app.exit()
     });
 
     ipcMain.on("domReady", async (ipc, args) => {
         domReady = true;
-        if (printConfig) {
-            ipc.reply("printConfig", printConfig);
+        if (cfg) {
+            ipc.reply("cfg", cfg);
         }
         updatePollStatus(pollingCfg, ipc)
         updateMQStatus(stompSession, ipc)
@@ -167,12 +146,15 @@ app.whenReady().then(async () => {
     await setupTray();
     await createWindow();
 
-    if (printConfig.activeMq) {
-        subscribeToMq(ipc, stompClient, stats, pdfPath, printConfig, (session) => stompSession = session);
+    if (cfg.mq) {
+        subscribeToMq(ipc, stats, cfg, (stompClient, session) => {
+            stompSession = session;
+            stompClient = stompClient;
+        })
     }
 
-    if (printService.poll) {
-        pollingCfg = await startPolling(ipc, stats, pdfPath, printConfig);
+    if (cfg.svc.poll) {
+        pollingCfg = await startPolling(ipc, stats, cfg);
     }
 
     app.on("activate", () => {
@@ -184,7 +166,11 @@ app.whenReady().then(async () => {
 
 app.on('before-quit', async function () {
     isQuiting = true;
-    await stompClient.unsubscribe(activeMq.queue);
-    await stompClient.disconnect();
-    await clearInterval(pollingCfg);
+    if (stompClient) {
+        await stompClient.unsubscribe(cfg.mq?.queue);
+        await stompClient.disconnect();
+    }
+    if (pollingCfg?._onTimeout) {
+        await clearInterval(pollingCfg);
+    }
 });

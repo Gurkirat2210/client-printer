@@ -11,15 +11,15 @@ let interval, retries;
 let logsTA, lastStatus;
 let testJobId;
 
-function populateForm(printConfig) {
-    interval.val(printConfig.printService.poll);
-    host.val(printConfig.activeMq.host);
-    port.val(printConfig.activeMq.port);
-    url.val(printConfig.printService.url);
-    uuid.val(printConfig.printer.uuid);
-    password.val(printConfig.printer.password);
-    queue.val(printConfig.activeMq.queue);
-    retries.val(printConfig.printService.maxAttempts);
+function populateForm(cfg) {
+    host.val(cfg.mq.host);
+    port.val(cfg.mq.port);
+    queue.val(cfg.mq.queue);
+    url.val(cfg.svc.url);
+    interval.val(cfg.svc.poll);
+    retries.val(cfg.svc.attempts);
+    uuid.val(cfg.printer.uuid);
+    password.val(cfg.printer.password);
 }
 
 function populateStats(data) {
@@ -133,10 +133,10 @@ $(function () {
         const proceed = window.confirm("Update config and restart app?");
         if (proceed) {
             ipcRenderer.send("updateAppConfig", {
-                "activeMq": {
+                "mq": {
                     "host": host.val(), "port": port.val(), "queue": queue.val()
-                }, "printService": {
-                    "url": url.val(), "maxAttempts": retries.val(), "poll": interval.val()
+                }, "svc": {
+                    "url": url.val(), "attempts": retries.val(), "poll": interval.val()
                 }, "printer": {
                     "uuid": uuid.val(), "password": password.val()
                 }
