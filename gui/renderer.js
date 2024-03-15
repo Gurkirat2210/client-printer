@@ -3,13 +3,12 @@ const moment = require("moment");
 window.$ = window.jQuery = require("jquery");
 const {maxLogSize} = require("../app-config.json");
 let printConfig = {};
-let stompSession;
 
 let testBtn, resetBtn, saveConfigBtn, viewLatestTicketBtn;
 let host, port, queue;
 let url, uuid, password;
 let interval, retries;
-let logsTA, stats;
+let logsTA, stats, lastStatus;
 
 function populateForm(printConfig) {
     interval.val(printConfig.printService.poll);
@@ -24,11 +23,29 @@ function populateForm(printConfig) {
 
 function populateStats(data) {
     stats.text("");
-    stats.append(`Received: ${data.received || ''}</br>`);
-    stats.append(`Processed: ${data.processed || ''}</br>`);
-    stats.append(`Failed: ${data.failed || ''}</br></br>`);
-    stats.append(`Last print time: ${data.last?.at || ''}</br>`);
-    stats.append(`Last print Job ID: ${data.last?.jobId || ''}</br>`);
+    data = {processed: 9, failed: 3, last: {jobId: 1, at: moment().toLocaleString()}}
+    lastStatus.text(data.last?.jobId ? `Last printed #${data.last?.jobId} at ${data.last?.at}` : '');
+    setupCharts(data);
+}
+
+function setupCharts(data) {
+    var ctx = $('#chart')[0].getContext('2d');
+    var chart = new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+            labels: ['Printed', 'Failed'],
+            datasets: [{
+                label: 'Print Jobs',
+                data: [data.processed, data.failed],
+                backgroundColor: ['seagreen', 'orangered'],
+            }]
+        },
+        options: {
+            // legend: false,
+            responsive: true,
+            maintainAspectRatio: false,
+        }
+    });
 }
 
 ipcRenderer.on("printConfig", (event, data) => {
@@ -64,12 +81,14 @@ ipcRenderer.on("status", (event, data) => {
     }
 });
 
+
 $(function () {
     testBtn = $("button#test");
     resetBtn = $("button#reset");
     saveConfigBtn = $("button#saveConfig");
     viewLatestTicketBtn = $("button#viewLatestTicket");
 
+    lastStatus = $("label.last.status");
     stats = $("p#stats");
     host = $("input[name='host']");
     port = $("input[name='port']");
@@ -123,6 +142,5 @@ $(function () {
 
     populateStats({});
     ipcRenderer.send("domReady");
-
 });
 

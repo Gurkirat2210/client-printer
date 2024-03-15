@@ -55,6 +55,11 @@ div.stats {
     float: right;
 }
 
+div.chart {
+    width: 200px;
+    height: 200px;
+}
+
 div.logs {
     width: -webkit-fill-available;
     position: fixed;
@@ -64,13 +69,16 @@ div.logs {
 }
 
 label.status {
-    padding: 3px;
+    padding: 2px;
     border-radius: 3px;
     color: white;
-    background: red;
+    border: 1px orangered solid;
+    background: orangered;
 }
 
+
 label.status.green {
-    background: green;
+    border: 1px seagreen solid;
+    background: seagreen;
 }
 

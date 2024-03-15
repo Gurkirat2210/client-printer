@@ -105,7 +105,6 @@ async function startPolling(ipc, stats) {
                 ipc.reply("log", "No jobs found");
             }
             for (let i in jobs) {
-                stats.received++;
                 const ack= await handlePayload(jobs[i], ipc)
                 if (ack.success) {
                     stats.last.fileName = ack.fileName;
@@ -136,7 +135,6 @@ function subscribeToMq(ipc, stompClient, activeMq, stats, callback) {
         updateMQStatus(stompSession, ipc);
         stompClient.subscribe(activeMq.queue, async (body, headers) => {
             try {
-                stats.received++;
                 ipc.reply("log", `Received message, ${body}`);
                 body = JSON.parse(body);
                 if (body.jobId < 0) {
