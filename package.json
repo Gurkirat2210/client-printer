@@ -1,17 +1,21 @@
 {
   "name": "client-printer",
   "version": "1.0.0",
-  "description": "",
+  "description": "MyDining Client Printer 2024",
+  "main": "main.js",
   "scripts": {
-    "start": "electron main.js",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "electron-forge start",
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "package": "electron-forge package",
+    "make": "electron-forge make"
   },
   "keywords": [],
-  "author": "",
+  "author": "1000156619 Ontario Inc.",
   "license": "ISC",
   "dependencies": {
     "axios": "^1.6.7",
     "chart.js": "^4.4.2",
+    "electron-squirrel-startup": "^1.0.0",
     "fs": "0.0.1-security",
     "jquery": "^3.7.1",
     "moment": "^2.30.1",
@@ -19,6 +23,12 @@
   },
   "devDependencies": {
     "@electron-forge/cli": "^7.3.0",
+    "@electron-forge/maker-deb": "^7.3.0",
+    "@electron-forge/maker-rpm": "^7.3.0",
+    "@electron-forge/maker-squirrel": "^7.3.0",
+    "@electron-forge/maker-zip": "^7.3.0",
+    "@electron-forge/plugin-auto-unpack-natives": "^7.3.0",
+    "@electron-forge/plugin-fuses": "^7.3.0",
     "electron": "^20.0.0"
   }
 }
