@@ -101,6 +101,7 @@ $(function () {
     queue = $("input[name='queue']");
     interval = $("select[name='interval']");
     retries = $("select[name='retries']");
+    logsTA = $("textarea#logs");
 
     viewLatestTicketBtn.off("click");
     viewLatestTicketBtn.on("click", (event) => {
@@ -114,9 +115,7 @@ $(function () {
 
     resetBtn.off("click");
     resetBtn.on("click", (event) => {
-        logsTA = $("textarea#logs");
-        ipcRenderer.send('reset', logsTA.text())
-        const proceed = window.confirm(`Press OK to backup logs and stats to ${cfg.logPath} before clearing.`);
+        const proceed = window.confirm(`Do you want to save the cleared logs and stats to ${cfg.logPath}?`);
         if (proceed) {
             ipcRenderer.send('reset', logsTA.text())
         }

@@ -3,18 +3,28 @@ body {
     font-size: 12px;
 }
 
-input[type=text]  {
+input[type=text] {
     width: 400px;
 }
 
 input[name=password] {
     width: 370px;
 }
- button#showPass {
-     float: right;
-     background: none;
-     border: none;
- }
+
+input[name=host]{
+    width: 316px;
+}
+
+input[name="port"] {
+    width: 70px;
+}
+
+button#showPass {
+    float: right;
+    background: none;
+    border: none;
+}
+
 input[name=testJobId] {
     width: 70px;
 }
