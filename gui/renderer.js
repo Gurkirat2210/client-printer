@@ -33,7 +33,6 @@ function populateStats(data) {
         lastStatus.hide();
         viewLatestTicketBtn.hide();
     }
-    setupCharts(data);
 }
 
 function setupCharts(data) {
@@ -69,7 +68,8 @@ ipcRenderer.on("log", (event, data) => {
 });
 
 ipcRenderer.on("stats", (event, data) => {
-    populateStats(data)
+    populateStats(data);
+    setupCharts(data);
 });
 
 ipcRenderer.on("status", (event, data) => {
