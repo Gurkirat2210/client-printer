@@ -114,7 +114,7 @@ async function startPolling(ipc, stats, pdfPath, printConfig) {
 }
 
 async function process(ipc, stats, pdfPath, printConfig) {
-    const jobs = await getJobs(ipc);
+    const jobs = await getJobs(printConfig);
     if (!jobs.length) {
         ipc.reply("log", "No jobs found");
     }
