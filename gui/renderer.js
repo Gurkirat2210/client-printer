@@ -116,7 +116,7 @@ $(function () {
     resetBtn.on("click", (event) => {
         logsTA = $("textarea#logs");
         ipcRenderer.send('reset', logsTA.text())
-        const proceed = window.confirm("Save current logs to file before clearing?");
+        const proceed = window.confirm(`Press OK to backup logs and stats to ${cfg.logPath} before clearing.`);
         if (proceed) {
             ipcRenderer.send('reset', logsTA.text())
         }

@@ -159,7 +159,7 @@ function subscribeToMq(ipc, stats, cfg, callback) {
             }
             ipc.reply("stats", stats);
         });
-        return callback(sessionId, stompClient);
+        return callback(stompClient, sessionId);
     }, (error) => {
         updateMQStatus(null, ipc, error.message);
         return callback();
