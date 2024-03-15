@@ -4,7 +4,7 @@ const {fileNameTimestampFmt} = require("./app-config.json");
 const moment = require("moment");
 
 async function getJobs(printConfig) {
-    const jobs = await axios.get(`${printConfig.printService.url}/PrintJobs/${printer.uuid}`, {
+    const jobs = await axios.get(`${printConfig.printService.url}/PrintJobs/${printConfig.printer.uuid}`, {
         headers: {
             'Authorization': printConfig.printer.password
         }
