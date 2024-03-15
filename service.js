@@ -1,6 +1,6 @@
 const axios = require("axios");
 const fs = require("fs");
-const {fileNameTimestampFmt} = require("./config.json");
+const {fileNameTimestampFmt, cfg: defaultCfg, exportFolder} = require("./config.json");
 const moment = require("moment");
 const Stomp = require("stomp-client");
 const path = require("node:path");
@@ -98,7 +98,7 @@ async function handlePrintOrder(body, ipc, cfg) {
 }
 
 async function startPolling(ipc, stats, cfg) {
-    if(cfg.svc.poll < 30000) {
+    if (cfg.svc.poll < 30000) {
         cfg.svc.poll = 30000;
     }
     let pollingCfg;
@@ -124,7 +124,7 @@ async function process(ipc, stats, cfg) {
         ipc.reply("log", "No jobs found");
     }
     for (let i in jobs) {
-        const ack= await handlePrintOrder(jobs[i], ipc, cfg)
+        const ack = await handlePrintOrder(jobs[i], ipc, cfg)
         if (ack.success) {
             stats.last.fileName = ack.fileName;
             stats.last.at = moment().toLocaleString();
@@ -198,7 +198,7 @@ function updateMQStatus(stompSession, ipc, error) {
     }
 }
 
-async function initFoldersAndCfg(cfg) {
+async function initFoldersAndCfg() {
     const exportPath = path.join(app.getPath('home'), exportFolder);
     if (!fs.existsSync(exportPath)) {
         fs.mkdirSync(exportPath);
