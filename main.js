@@ -5,13 +5,6 @@ const fs = require("fs");
 const Stomp = require("stomp-client");
 const moment = require("moment");
 const {subscribeToMq, updatePollStatus, startPolling, testRetrieveJob, updateMQStatus} = require("./service");
-const printConfig = require("./print-config.json");
-const {copyFileSync} = require("fs");
-const {activeMq, printService} = printConfig;
-const stompClient = new Stomp({
-    host: activeMq.host,
-    port: activeMq.port,
-});
 
 const stats = {
     received: 0,
@@ -35,6 +28,17 @@ const logPath = path.join(exportPath, 'log');
 if (!fs.existsSync(logPath)) {
     fs.mkdirSync(logPath);
 }
+
+let printConfig = require("./print-config.json");
+const configPath = path.join(exportPath, 'print-config.json');
+if (fs.existsSync(configPath)) {
+    printConfig = require(configPath)
+}
+const {activeMq, printService} = printConfig;
+const stompClient = new Stomp({
+    host: activeMq?.host,
+    port: activeMq?.port,
+});
 
 let isQuiting;
 let tray;
@@ -121,7 +125,7 @@ const createWindow = () => {
     });
 
     ipcMain.on("updateAppConfig", async (ipc, args) => {
-        const fileName = `${__dirname}/print-config.json`;
+        const fileName = path.join(exportPath, `/print-config.json`);
         await fs.writeFileSync(fileName, JSON.stringify(args));
         ipc.reply("printConfig", printConfig);
         app.relaunch()
@@ -161,7 +165,7 @@ app.whenReady().then(async () => {
         subscribeToMq(ipc, stompClient, activeMq, stats, pdfPath, (session) => stompSession = session);
     }
 
-    if (printService.poll > 0) {
+    if (printService.poll) {
         printService.poll = printService.poll > 30000 ? printService.poll : 30000;
         pollingCfg = await startPolling(ipc, stats, pdfPath);
     }
