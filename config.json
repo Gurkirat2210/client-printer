@@ -1,0 +1,28 @@
+{
+  "maxLogSize": 100000,
+  "fileNameTimestampFmt": "MMDDYYYYHHmmss",
+  "exportFolder": "ClientPrinter2024",
+  "window": {
+    "width": 1000,
+    "height": 600,
+    "minHeight": 600,
+    "minWidth": 1000,
+    "autoHideMenuBar": true
+  },
+  "defaultCfg": {
+    "mq": {
+      "host": "127.0.0.1",
+      "port": "61613",
+      "queue": "/queue/print-orders-1303"
+    },
+    "svc": {
+      "url": "http://localhost:8080",
+      "attempts": "1",
+      "poll": "-1"
+    },
+    "printer": {
+      "uuid": "b109ec60-2047-43cb-8962-7d132cc18fc2",
+      "password": "*GvO&T1lg70"
+    }
+  }
+}

@@ -1,7 +1,7 @@
 const {ipcRenderer} = require("electron");
 const moment = require("moment");
 window.$ = window.jQuery = require("jquery");
-const {maxLogSize} = require("../app-config.json");
+const {maxLogSize} = require("../config.json");
 let printConfig = {};
 
 let testBtn, resetBtn, saveConfigBtn, viewLatestTicketBtn, showPassBtn;

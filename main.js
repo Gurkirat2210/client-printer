@@ -1,6 +1,6 @@
 const {dialog, app, BrowserWindow, Tray, ipcMain} = require("electron");
 const path = require("node:path");
-const {window, fileNameTimestampFmt} = require("./app-config.json");
+const {window, fileNameTimestampFmt, defaultCfg} = require("./config.json");
 const fs = require("fs");
 const moment = require("moment");
 const {
@@ -11,7 +11,7 @@ const {
     updateMQStatus,
     initFoldersAndCfg
 } = require("./service");
-const cfg = await initFoldersAndCfg(require("./print-config.json"));
+const cfg = await initFoldersAndCfg(defaultCfg);
 const stats = {
     received: 0,
     processed: 0,

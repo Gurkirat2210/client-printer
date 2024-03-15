@@ -1,6 +1,6 @@
 const axios = require("axios");
 const fs = require("fs");
-const {fileNameTimestampFmt} = require("./app-config.json");
+const {fileNameTimestampFmt} = require("./config.json");
 const moment = require("moment");
 const Stomp = require("stomp-client");
 const path = require("node:path");
