@@ -84,16 +84,15 @@ async function handlePrintOrder(body, ipc, cfg) {
         attempt++;
     } while (!ack.success && attempt <= cfg.svc.attempts);
 
-    if (ack.success || attempt > cfg.svc.attempts) {
-        try {
-            ipc.reply("log", `Job#${jobId}: Sending ACK: ${JSON.stringify(ack)}`);
-            const ackRes = await sendAck(ack, cfg);
-            ack.success = ackRes.status === 200;
-            ipc.reply("log", `Job#${jobId}: ACK status: (${ackRes.status}) ${ack.success ? "SENT" : "FAILED"}.`);
-        } catch (error) {
-            ipc.reply("log", `Job#${jobId}: ACK ERROR: ${error.message}.`);
-        }
+    try {
+        ipc.reply("log", `Job#${jobId}: Sending ACK: ${JSON.stringify(ack)}`);
+        const ackRes = await sendAck(ack, cfg);
+        ack.success = ackRes.status === 200;
+        ipc.reply("log", `Job#${jobId}: ACK status: (${ackRes.status}) ${ack.success ? "SENT" : "FAILED"}.`);
+    } catch (error) {
+        ipc.reply("log", `Job#${jobId}: ACK ERROR: ${error.message}.`);
     }
+
     return ack;
 }
 
@@ -208,6 +207,7 @@ function initFoldersAndCfg() {
     if (fs.existsSync(cfg.configPath)) {
         cfg = require(cfg.configPath);
     }
+    cfg.configPath = path.join(exportPath, 'print-config.json');
     cfg.pdfPath = path.join(exportPath, 'pdf');
     if (!fs.existsSync(cfg.pdfPath)) {
         fs.mkdirSync(cfg.pdfPath);

@@ -24,7 +24,6 @@ function populateForm() {
 
 function populateStats(data) {
     // data = {processed: 9, failed: 3, last: {jobId: 1, at: moment().toLocaleString()}}
-    viewLatestTicketBtn.show();
     if (data.last?.jobId) {
         lastStatus.text(`Last printed #${data.last?.jobId} at ${data.last?.at}`);
         lastStatus.show();
