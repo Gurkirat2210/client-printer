@@ -100,8 +100,6 @@ const createWindow = () => {
         }
     });
 
-    ipcMain.on("reset", exportLogsStats);
-
     const exportLogsStats = async (ipc, args) => {
         const fileName = `${cfg.logPath}/${moment().format(fileNameTimestampFmt)}.log`;
         await fs.writeFileSync(fileName, JSON.stringify(stats) + '\n\n' + args);
@@ -113,6 +111,8 @@ const createWindow = () => {
             ipc.reply("stats", stats);
         }
     };
+
+    ipcMain.on("reset", exportLogsStats);
 
     ipcMain.on("updateAppConfig", async (ipc, args) => {
         await fs.writeFileSync(cfg.configPath, JSON.stringify(args.config));
