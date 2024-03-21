@@ -2,7 +2,7 @@
   "name": "ClientPrinter2024",
   "version": "1.0.0",
   "description": "Client Printer 2024",
-  "main": "main.js",
+  "main": "app/main.js",
   "scripts": {
     "start": "electron-forge start",
     "test": "echo \"Error: no test specified\" && exit 1",

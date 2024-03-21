@@ -34,7 +34,7 @@ let domReady;
 const createWindow = () => {
     mainWindow = new BrowserWindow({
         ...window,
-        icon: path.join(__dirname, 'gui/icon.png'),
+        icon: path.join(__dirname, '../gui/icon.png'),
         webPreferences: {
             nodeIntegration: true,
             contextIsolation: false
@@ -42,7 +42,7 @@ const createWindow = () => {
     });
 
     // mainWindow.webContents.openDevTools();
-    mainWindow.loadFile("gui/index.html");
+    mainWindow.loadFile(path.join(__dirname, "../gui/index.html"));
 
     mainWindow.on('minimize', (ev) => {
         mainWindow.hide();
@@ -141,7 +141,7 @@ const createWindow = () => {
 };
 
 function setupTray() {
-    tray = new Tray(path.join(__dirname, 'gui/icon.png'));
+    tray = new Tray(path.join(__dirname, '../gui/icon.png'));
     tray.on("click", () => {
         if (mainWindow) {
             mainWindow.show();
