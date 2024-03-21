@@ -4,7 +4,7 @@ window.$ = window.jQuery = require("jquery");
 const {maxLogSize} = require("../config.json");
 let cfg = {};
 
-let testBtn, resetBtn, saveConfigBtn, viewLatestTicketBtn, showPassBtn;
+let testBtn, clearBtn, saveConfigBtn, viewLatestTicketBtn, showPassBtn, wrapBtn, exportBtn;
 let host, port, queue;
 let url, uuid, password;
 let interval, retries;
@@ -85,10 +85,12 @@ ipcRenderer.on("status", (event, data) => {
 
 $(function () {
     testBtn = $("button#test");
-    resetBtn = $("button#reset");
+    clearBtn = $("button#clear");
     saveConfigBtn = $("button#saveConfig");
     viewLatestTicketBtn = $("button#viewLatestTicket");
     showPassBtn = $("button#showPass");
+    wrapBtn = $("button#wrap");
+    exportBtn = $("button#export");
 
     testJobId = $('input[name="testJobId"]');
     lastStatus = $("label.last.status");
@@ -107,18 +109,29 @@ $(function () {
         ipcRenderer.send("viewLatestTicket");
     });
 
+    wrapBtn.off("click");
+    wrapBtn.click((event) => {
+        logsTA.css("white-space", logsTA.css("white-space") == "pre" ? "pre-wrap" : "pre")
+    });
+
     testBtn.off("click");
     testBtn.on("click", (event) => {
         ipcRenderer.send("test", testJobId.val());
     });
 
-    resetBtn.off("click");
-    resetBtn.on("click", (event) => {
-        const proceed = window.confirm(`Do you want to save the cleared logs and stats to ${cfg.logPath}?`);
-        if (proceed) {
-            ipcRenderer.send('reset', logsTA.text())
-        }
+    exportBtn.off("click");
+    exportBtn.on("click", (event) => {
+        ipcRenderer.send('reset', logsTA.text())
+        window.alert(`Logs and stats saved in folder ${cfg.logPath}`)
         logsTA.text('');
+    });
+
+    clearBtn.off("click");
+    clearBtn.on("click", (event) => {
+        const proceed = window.confirm(`Clear logs and stats?`);
+        if (proceed) {
+            logsTA.text('');
+        }
     });
 
     showPassBtn.off("click");

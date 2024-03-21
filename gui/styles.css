@@ -57,18 +57,20 @@ textarea {
     resize: none;
     height: 100%;
     width: 100%;
+    white-space: pre;
 }
 
-button#reset {
+.logs .buttons {
     float: right;
 }
 
-div {
-    padding: 5px;
+.logs .buttons button, button#viewLatestTicket {
+    background: none;
+    border: none;
 }
 
 div.config {
-    width: 600px;
+    width: 525px;
     float: left;
 }
 
@@ -85,8 +87,8 @@ div.chart {
 div.logs {
     width: -webkit-fill-available;
     position: fixed;
-    bottom: 30px;
-    top: 300px;
+    bottom: 50px;
+    top: 230px;
     padding-right: 10px;
 }
 

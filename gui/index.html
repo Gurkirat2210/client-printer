@@ -5,11 +5,11 @@
           content="default-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'">
     <title>Client Printer</title>
     <link href="styles.css" rel="stylesheet"/>
+    <link href="fa.css" rel="stylesheet"/>
 </head>
 <body>
 <script src="renderer.js"></script>
 <script src="chart.min.js"></script>
-<script src="fa.min.js"></script>
 <div class="config">
 
     <div>
@@ -30,7 +30,9 @@
             </tr>
             <tr>
                 <td class="label">Printer Password</td>
-                <td colspan="3"><input type="password" name="password"><button id="showPass" placeholder="Printer Password">&#128065;</button></td>
+                <td colspan="3"><input type="password" name="password">
+                    <button id="showPass" placeholder="Printer Password">&#128065;</button>
+                </td>
             </tr>
             <tr>
                 <td class="label">Max Attempts</td>
@@ -73,7 +75,9 @@
             </tr>
             <tr>
                 <td colspan="4" style="text-align: center">
-                    <div><button id="saveConfig">Update/Restart</button></div>
+                    <div class="saveButton">
+                        <button id="saveConfig"><i class="fa-solid fa-arrow-rotate-left"></i> Restart to apply</button>
+                    </div>
                 </td>
             </tr>
             </tbody>
@@ -88,14 +92,19 @@
 </div>
 
 <div class="logs">
-    <textarea disabled id="logs" rows="15"></textarea>
-<!--    <input type="text" min="1" placeholder="Test Job Id" name="testJobId" value="">-->
-    <button id="test">Test</button>
-    <label class="poll status"></label>
-    <label class="mq status"></label>
-    <label class="last status green"></label>
-    <button id="viewLatestTicket">View</button>
-    <button id="reset"><i class="fa-solid fa-trash">Reset</i></button>
+    <div class="buttons">
+        <button id="wrap"><i class="fa-solid fa-arrows-left-right-to-line"></i></button>
+        <button id="export"><i class="fa-solid fa-file-export"></i></button>
+        <button id="clear"><i class="fa-solid fa-trash"></i></button>
+    </div>
+    <textarea disabled id="logs"></textarea>
+    <div class="statusBar">
+        <button id="test">Test</button>
+        <label class="poll status"></label>
+        <label class="mq status"></label>
+        <label class="last status green"></label>
+        <button id="viewLatestTicket"><i class="fa-solid fa-download"></i></button>
+    </div>
 </div>
 
 
