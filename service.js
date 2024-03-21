@@ -206,8 +206,8 @@ function initFoldersAndCfg() {
     cfg.configPath = path.join(exportPath, 'print-config.json');
     if (fs.existsSync(cfg.configPath)) {
         cfg = require(cfg.configPath);
+        cfg.configPath = path.join(exportPath, 'print-config.json');
     }
-    cfg.configPath = path.join(exportPath, 'print-config.json');
     cfg.pdfPath = path.join(exportPath, 'pdf');
     if (!fs.existsSync(cfg.pdfPath)) {
         fs.mkdirSync(cfg.pdfPath);

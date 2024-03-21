@@ -131,12 +131,15 @@ $(function () {
         const proceed = window.confirm("Update config and restart app?");
         if (proceed) {
             ipcRenderer.send("updateAppConfig", {
-                "mq": {
-                    "host": host.val(), "port": port.val(), "queue": queue.val()
-                }, "svc": {
-                    "url": url.val(), "attempts": retries.val(), "poll": interval.val()
-                }, "printer": {
-                    "uuid": uuid.val(), "password": password.val()
+                "config": {
+                    "mq": {
+                        "host": host.val(), "port": port.val(), "queue": queue.val()
+                    }, "svc": {
+                        "url": url.val(), "attempts": retries.val(), "poll": interval.val()
+                    }, "printer": {
+                        "uuid": uuid.val(), "password": password.val()
+                    },
+                    "logs": logsTA.text()
                 }
             });
         } else {

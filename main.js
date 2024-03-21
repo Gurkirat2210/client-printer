@@ -100,19 +100,23 @@ const createWindow = () => {
         }
     });
 
-    ipcMain.on("reset", async (ipc, args) => {
-        const fileName = `${logPath}/${moment().format(fileNameTimestampFmt)}.logs`;
+    ipcMain.on("reset", exportLogsStats);
+
+    const exportLogsStats = async (ipc, args) => {
+        const fileName = `${cfg.logPath}/${moment().format(fileNameTimestampFmt)}.log`;
         await fs.writeFileSync(fileName, JSON.stringify(stats) + '\n\n' + args);
         stats.received = 0;
         stats.processed = 0;
         stats.failed = 0;
         stats.last = {}
-        ipc.reply("stats", stats);
-    });
+        if (ipc) {
+            ipc.reply("stats", stats);
+        }
+    };
 
     ipcMain.on("updateAppConfig", async (ipc, args) => {
-        await fs.writeFileSync(cfg.configPath, JSON.stringify(args));
-        ipc.reply("cfg", cfg);
+        await fs.writeFileSync(cfg.configPath, JSON.stringify(args.config));
+        await exportLogsStats(null, args.logs);
         app.relaunch()
         app.exit()
     });
