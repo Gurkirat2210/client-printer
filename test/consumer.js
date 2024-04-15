@@ -1,12 +1,12 @@
-const { queue, activeMq } = require("../app/config.json");
+const {mq} = require("../app/config.json").defaultCfg;
 const Stomp = require("stomp-client");
-const stompClient = new Stomp(activeMq.host, activeMq.port);
+const stompClient = new Stomp(mq.host, mq.port);
+const moment = require("moment");
 
 stompClient.connect((sessionId) => {
-  console.log("connected, " + sessionId);
-  stompClient.subscribe(queue, (body, headers) => {
-    const text = `\n===============\n${JSON.stringify(headers, null, 4)}\n\n${JSON.stringify(JSON.parse(body), null, 4)}\n`;
-    console.log(text);
-  });
-  console.log("subcribed, " + queue);
+    console.log("connected, " + sessionId);
+    stompClient.subscribe(mq.queue + '-test', (body, headers) => {
+        const text = `\n${moment()}: ${JSON.stringify(headers, null, 2)}\nContent: ${body}`;
+        console.log(text);
+    });
 });

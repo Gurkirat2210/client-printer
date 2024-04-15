@@ -197,7 +197,7 @@ function updateMQStatus(stompSession, ipc, error) {
     }
 }
 
-function initFoldersAndCfg() {
+function initFoldersAndCfg(app) {
     let cfg = defaultCfg;
     const exportPath = path.join(app.getPath('home'), exportFolder);
     if (!fs.existsSync(exportPath)) {

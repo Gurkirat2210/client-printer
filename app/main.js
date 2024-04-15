@@ -11,7 +11,7 @@ const {
     updateMQStatus,
     initFoldersAndCfg
 } = require("./service");
-const cfg = initFoldersAndCfg();
+const cfg = initFoldersAndCfg(app);
 const stats = {
     received: 0,
     processed: 0,
@@ -87,13 +87,15 @@ const createWindow = () => {
             await fs.writeFileSync(fileName, pdfStream);
             if (stompClient) {
                 stompClient.publish(cfg.mq.queue, JSON.stringify({
-                    label: "This is test message is pushed to validate if the consumer is working, pushed at: " + new Date(),
-                    jobId: -1,
-                }))
-                stompClient.publish(cfg.mq.queue, JSON.stringify({
-                    label: "This is test message is pushed to simulate new meal order message, pushed at: " + new Date(),
+                    label: "This is test message is pushed to simulate new meal order message, pushed at: " + moment(),
                     jobId: 0,
                 }))
+                stompClient.publish(cfg.mq.queue, JSON.stringify({
+                    label: "This is test message is pushed to validate if the consumer is working, pushed at: " + moment(),
+                    jobId: -1,
+                }), {
+                    AMQ_SCHEDULED_DELAY: 60000
+                })
             }
         } catch (error) {
             ipc.reply("log", error?.message);
