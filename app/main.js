@@ -86,11 +86,11 @@ const createWindow = () => {
             ipc.reply("log", `Job#TEST: Attempt#1/1: printing pdf ${fileName}`);
             await fs.writeFileSync(fileName, pdfStream);
             if (stompClient) {
-                stompClient.publish(cfg.mq.queue, JSON.stringify({
+                stompClient.publish(cfg.printer.uuid, JSON.stringify({
                     label: "This is test message is pushed to simulate new meal order message, pushed at: " + moment(),
                     jobId: 0,
                 }))
-                stompClient.publish(cfg.mq.queue, JSON.stringify({
+                stompClient.publish(cfg.printer.uuid, JSON.stringify({
                     label: "This is test message is pushed to validate if the consumer is working, pushed at: " + moment(),
                     jobId: -1,
                 }), {
@@ -117,8 +117,9 @@ const createWindow = () => {
     ipcMain.on("reset", exportLogsStats);
 
     ipcMain.on("updateAppConfig", async (ipc, args) => {
-        await fs.writeFileSync(cfg.configPath, JSON.stringify(args.config));
         await exportLogsStats(null, args.logs);
+        delete args.logs;
+        await fs.writeFileSync(cfg.configPath, JSON.stringify(args));
         app.relaunch()
         app.exit()
     });
@@ -164,7 +165,7 @@ app.whenReady().then(async () => {
 app.on('before-quit', async function () {
     isQuiting = true;
     if (stompClient) {
-        await stompClient.unsubscribe(cfg.mq?.queue);
+        await stompClient.unsubscribe(cfg.printer.uuid);
         await stompClient.disconnect();
     }
     if (pollingCfg?._onTimeout) {

@@ -12,8 +12,7 @@
   "defaultCfg": {
     "mq": {
       "host": "127.0.0.1",
-      "port": "61613",
-      "queue": "/queue/print-orders-1303"
+      "port": "61613"
     },
     "svc": {
       "url": "http://localhost:8080",
@@ -21,8 +20,8 @@
       "poll": ""
     },
     "printer": {
-      "uuid": "b109ec60-2047-43cb-8962-7d132cc18fc2",
-      "password": "*GvO&T1lg70"
+      "uuid": "b943c76b-8150-4ea6-83c6-2028f33a403g",
+      "password": "pdf-pass"
     }
   }
 }

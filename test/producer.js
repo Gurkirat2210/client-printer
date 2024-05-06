@@ -15,8 +15,6 @@ async function getJobs() {
 
 stompClient.connect(async (sessionId) => {
     console.log(sessionId);
-    await stompClient.publish(mq.queue + '-test', JSON.stringify({date: moment()}), {AMQ_SCHEDULED_DELAY: 30000});
-
     const jobs = await getJobs();
     if (!jobs || !jobs.data || !jobs.data.length) {
         console.log("No jobs found");
@@ -26,8 +24,18 @@ stompClient.connect(async (sessionId) => {
             label: "received new print order",
             jobId: jobs.data[i]["jobId"],
         };
-        await stompClient.publish(mq.queue + '-test', JSON.stringify(notification));
+        await stompClient.publish(`/queue/${printer.uuid}`, JSON.stringify(notification));
     }
-    stompClient.disconnect();
+
+    setInterval(async () => {
+        const message = {
+            date: moment(),
+            delay: Math.floor(1000 * 10 * 10 * Math.random())
+        };
+        console.dir(message);
+        await stompClient.publish(`/queue/${printer.uuid}`, JSON.stringify(message), {AMQ_SCHEDULED_DELAY: message.delay})
+    }, 60000);
+
+    // stompClient.disconnect();
 });
 

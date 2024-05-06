@@ -142,7 +142,7 @@ function subscribeToMq(ipc, stats, cfg, callback) {
     });
     stompClient.connect((sessionId) => {
         updateMQStatus(sessionId, ipc);
-        stompClient.subscribe(cfg.mq.queue, async (body, headers) => {
+        stompClient.subscribe(`/queue/${cfg.printer.uuid}`, async (body, headers) => {
             const msgId = headers["message-id"];
             try {
                 ipc.reply("log", `${msgId}: Received message, ${body}`);
@@ -205,7 +205,7 @@ function initFoldersAndCfg(app) {
     }
     cfg.configPath = path.join(exportPath, 'print-config.json');
     if (fs.existsSync(cfg.configPath)) {
-        cfg = require(cfg.configPath);
+        cfg = require(cfg.configPath)?.config;
         cfg.configPath = path.join(exportPath, 'print-config.json');
     }
     cfg.pdfPath = path.join(exportPath, 'pdf');

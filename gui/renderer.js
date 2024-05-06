@@ -14,7 +14,7 @@ let testJobId;
 function populateForm() {
     host.val(cfg.mq.host);
     port.val(cfg.mq.port);
-    queue.val(cfg.mq.queue);
+    queue.val(`/queue/${cfg.printer.uuid}`);
     url.val(cfg.svc.url);
     interval.val(cfg.svc.poll);
     retries.val(cfg.svc.attempts);
@@ -146,14 +146,14 @@ $(function () {
             ipcRenderer.send("updateAppConfig", {
                 "config": {
                     "mq": {
-                        "host": host.val(), "port": port.val(), "queue": queue.val()
+                        "host": host.val(), "port": port.val()
                     }, "svc": {
                         "url": url.val(), "attempts": retries.val(), "poll": interval.val()
                     }, "printer": {
                         "uuid": uuid.val(), "password": password.val()
-                    },
-                    "logs": logsTA.text()
-                }
+                    }
+                },
+                "logs": logsTA.text()
             });
         } else {
             populateForm(cfg)

@@ -9,6 +9,9 @@
     "package": "electron-forge package",
     "make": "electron-forge make"
   },
+  "build": {
+    "appId": "1000156619OntarioInc.ClientPrinter2024"
+  },
   "keywords": [],
   "author": "1000156619 Ontario Inc.",
   "license": "ISC",
