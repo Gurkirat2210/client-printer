@@ -93,6 +93,10 @@ const createWindow = () => {
                 stompClient.publish(cfg.printer.uuid, JSON.stringify({
                     label: "This is test message is pushed to validate if the consumer is working, pushed at: " + moment(),
                     jobId: -1,
+                }))
+                stompClient.publish(cfg.printer.uuid, JSON.stringify({
+                    label: "This is test message is pushed to validate if the consumer DELAY is working, pushed at: " + moment(),
+                    jobId: -1,
                 }), {
                     AMQ_SCHEDULED_DELAY: 60000
                 })
